@@ -128,6 +128,19 @@ public class ModerationPlus extends JavaPlugin {
             }
         });
 
+        // Register VanishedPlayerIconMarkerProvider for existing worlds
+        for (com.hypixel.hytale.server.core.universe.world.World world : com.hypixel.hytale.server.core.universe.Universe
+                .get().getWorlds().values()) {
+            world.getWorldMapManager().addMarkerProvider("playerIcons",
+                    new me.almana.moderationplus.provider.VanishedPlayerIconMarkerProvider(this));
+        }
+
+        getEventRegistry().registerGlobal(com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent.class,
+                event -> {
+                    event.getWorld().getWorldMapManager().addMarkerProvider("playerIcons",
+                            new me.almana.moderationplus.provider.VanishedPlayerIconMarkerProvider(this));
+                });
+
         getEventRegistry().register(com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent.class,
                 event -> {
                     // Cleanup ECS
