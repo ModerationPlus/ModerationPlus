@@ -26,16 +26,13 @@ public class UnmuteCommand extends AbstractCommand {
     public UnmuteCommand(ModerationPlus plugin) {
         super("unmute", "Unmute a player");
         this.plugin = plugin;
+        this.requirePermission("moderation.unmute");
         this.playerArg = withRequiredArg("player", "Player to unmute", (ArgumentType<String>) ArgTypes.STRING);
     }
 
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.unmute")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(java.awt.Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

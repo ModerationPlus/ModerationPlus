@@ -4,7 +4,7 @@ import java.awt.Color;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.CommandSender;
+
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgumentType;
@@ -31,16 +31,12 @@ public class NotesCommand extends AbstractCommand {
     public NotesCommand(ModerationPlus plugin) {
         super("notes", "View staff notes for a player");
         this.plugin = plugin;
+        this.requirePermission("moderation.notes");
         this.playerArg = withRequiredArg("player", "Player name", (ArgumentType<String>) ArgTypes.STRING);
     }
 
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
-        CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.notes")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

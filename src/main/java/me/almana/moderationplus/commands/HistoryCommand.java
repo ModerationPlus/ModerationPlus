@@ -4,7 +4,7 @@ import java.awt.Color;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.CommandSender;
+
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgumentType;
@@ -32,16 +32,12 @@ public class HistoryCommand extends AbstractCommand {
     public HistoryCommand(ModerationPlus plugin) {
         super("history", "View player punishment history");
         this.plugin = plugin;
+        this.requirePermission("moderation.history");
         this.playerArg = withRequiredArg("player", "Player name", (ArgumentType<String>) ArgTypes.STRING);
     }
 
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
-        CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.history")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

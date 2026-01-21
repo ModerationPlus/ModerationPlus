@@ -27,6 +27,7 @@ public class NoteCommand extends AbstractCommand {
     public NoteCommand(ModerationPlus plugin) {
         super("note", "Add a staff note to a player");
         this.plugin = plugin;
+        this.requirePermission("moderation.note");
         this.playerArg = withRequiredArg("player", "Player name", (ArgumentType<String>) ArgTypes.STRING);
         this.messageArg = withRequiredArg("message", "Note message", (ArgumentType<String>) ArgTypes.STRING);
         setAllowsExtraArguments(true);
@@ -35,10 +36,6 @@ public class NoteCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.note")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

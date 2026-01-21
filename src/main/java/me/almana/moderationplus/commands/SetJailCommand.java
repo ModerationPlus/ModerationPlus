@@ -27,6 +27,7 @@ public class SetJailCommand extends AbstractCommand {
     public SetJailCommand(ModerationPlus plugin) {
         super("setjail", "Set the jail location");
         this.plugin = plugin;
+        this.requirePermission("moderation.setjail");
         this.xArg = withOptionalArg("x", "X coordinate", (ArgumentType<Double>) ArgTypes.DOUBLE);
         this.yArg = withOptionalArg("y", "Y coordinate", (ArgumentType<Double>) ArgTypes.DOUBLE);
         this.zArg = withOptionalArg("z", "Z coordinate", (ArgumentType<Double>) ArgTypes.DOUBLE);
@@ -35,10 +36,6 @@ public class SetJailCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.setjail")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         if (xArg.provided(ctx) && yArg.provided(ctx) && zArg.provided(ctx)) {
             // Explicit coordinates

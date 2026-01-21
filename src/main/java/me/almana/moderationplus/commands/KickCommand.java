@@ -29,6 +29,7 @@ public class KickCommand extends AbstractCommand {
     public KickCommand(ModerationPlus plugin) {
         super("kick", "Kick a player from the server");
         this.plugin = plugin;
+        this.requirePermission("moderation.kick");
         this.playerArg = withRequiredArg("player", "Player to kick", (ArgumentType<String>) ArgTypes.STRING);
         this.reasonArg = withRequiredArg("reason", "Kick reason", (ArgumentType<String>) ArgTypes.STRING);
         setAllowsExtraArguments(true);
@@ -37,10 +38,6 @@ public class KickCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.kick")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

@@ -28,6 +28,7 @@ public class MuteCommand extends AbstractCommand {
     public MuteCommand(ModerationPlus plugin) {
         super("mute", "Mute a player permanently");
         this.plugin = plugin;
+        this.requirePermission("moderation.mute");
         this.playerArg = withRequiredArg("player", "Player to mute", (ArgumentType<String>) ArgTypes.STRING);
         // Greedy reason
         setAllowsExtraArguments(true);
@@ -36,10 +37,6 @@ public class MuteCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.mute")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

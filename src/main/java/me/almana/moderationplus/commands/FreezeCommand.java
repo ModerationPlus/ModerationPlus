@@ -25,16 +25,13 @@ public class FreezeCommand extends AbstractCommand {
     public FreezeCommand(ModerationPlus plugin) {
         super("freeze", "Freeze a player in place");
         this.plugin = plugin;
+        this.requirePermission("moderation.freeze");
         this.playerArg = withRequiredArg("player", "Player to freeze", (ArgumentType<String>) ArgTypes.STRING);
     }
 
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.freeze")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(java.awt.Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

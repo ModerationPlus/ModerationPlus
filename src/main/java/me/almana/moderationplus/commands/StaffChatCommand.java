@@ -17,7 +17,7 @@ public class StaffChatCommand extends AbstractCommand {
 
     public StaffChatCommand(me.almana.moderationplus.ModerationPlus plugin) {
         super("schat", "Send a staff chat message");
-
+        this.requirePermission("moderation.staffchat.send");
         this.messageArg = withRequiredArg("message", "Message to send", (ArgumentType<String>) ArgTypes.STRING);
         setAllowsExtraArguments(true);
     }
@@ -25,11 +25,6 @@ public class StaffChatCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-
-        if (!sender.hasPermission("moderation.staffchat.send")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use staff chat.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String firstWord = ctx.get(messageArg);
         if (firstWord == null || firstWord.trim().isEmpty()) {

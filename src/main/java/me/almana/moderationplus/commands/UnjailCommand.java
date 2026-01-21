@@ -22,16 +22,13 @@ public class UnjailCommand extends AbstractCommand {
     public UnjailCommand(ModerationPlus plugin) {
         super("unjail", "Unjail a player");
         this.plugin = plugin;
+        this.requirePermission("moderation.unjail");
         this.playerArg = withRequiredArg("player", "Player to unjail", (ArgumentType<String>) ArgTypes.STRING);
     }
 
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.unjail")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

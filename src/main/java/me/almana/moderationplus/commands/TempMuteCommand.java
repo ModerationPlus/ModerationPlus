@@ -30,6 +30,7 @@ public class TempMuteCommand extends AbstractCommand {
     public TempMuteCommand(ModerationPlus plugin) {
         super("tempmute", "Mute a player temporarily");
         this.plugin = plugin;
+        this.requirePermission("moderation.tempmute");
         this.playerArg = withRequiredArg("player", "Player to mute", (ArgumentType<String>) ArgTypes.STRING);
         this.durationArg = withRequiredArg("duration", "Duration (e.g. 5m, 1h)",
                 (ArgumentType<String>) ArgTypes.STRING);
@@ -39,10 +40,6 @@ public class TempMuteCommand extends AbstractCommand {
 
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.tempmute")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
         String durationStr = ctx.get(durationArg);

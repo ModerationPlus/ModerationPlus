@@ -32,6 +32,7 @@ public class BanCommand extends AbstractCommand {
     public BanCommand(ModerationPlus plugin) {
         super("ban", "Ban a player permanently");
         this.plugin = plugin;
+        this.requirePermission("moderation.ban");
         this.playerArg = withRequiredArg("player", "Player to ban", (ArgumentType<String>) ArgTypes.STRING);
 
         setAllowsExtraArguments(true);
@@ -40,10 +41,6 @@ public class BanCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.ban")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

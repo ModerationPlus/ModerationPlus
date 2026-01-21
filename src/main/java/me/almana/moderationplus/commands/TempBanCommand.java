@@ -35,6 +35,7 @@ public class TempBanCommand extends AbstractCommand {
     public TempBanCommand(ModerationPlus plugin) {
         super("tempban", "Ban a player temporarily");
         this.plugin = plugin;
+        this.requirePermission("moderation.tempban");
         this.playerArg = withRequiredArg("player", "Player to ban", (ArgumentType<String>) ArgTypes.STRING);
         this.durationArg = withRequiredArg("duration", "Duration (e.g. 5m, 1h)",
                 (ArgumentType<String>) ArgTypes.STRING);
@@ -45,10 +46,6 @@ public class TempBanCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.tempban")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
         String durationStr = ctx.get(durationArg);

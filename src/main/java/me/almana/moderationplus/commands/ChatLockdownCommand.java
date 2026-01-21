@@ -20,16 +20,13 @@ public class ChatLockdownCommand extends AbstractCommand {
     public ChatLockdownCommand(ModerationPlus plugin) {
         super("chatlockdown", "Toggle chat lockdown");
         this.plugin = plugin;
+        this.requirePermission("moderation.chatlockdown");
         this.modeArg = withRequiredArg("mode", "on or off", (ArgumentType<String>) ArgTypes.STRING);
     }
 
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.chatlockdown")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String mode = null;
         try {

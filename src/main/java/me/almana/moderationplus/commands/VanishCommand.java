@@ -19,6 +19,7 @@ public class VanishCommand extends AbstractCommand {
     public VanishCommand(ModerationPlus plugin) {
         super("vanish", "Toggle vanish mode");
         this.plugin = plugin;
+        this.requirePermission("moderation.vanish");
     }
 
     @Override
@@ -29,11 +30,6 @@ public class VanishCommand extends AbstractCommand {
         if (!(sender instanceof Player)) {
             ctx.sendMessage(Message.raw("Only players can use this command.").color(java.awt.Color.RED));
 
-            return CompletableFuture.completedFuture(null);
-        }
-
-        if (!sender.hasPermission("moderation.vanish")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(java.awt.Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 

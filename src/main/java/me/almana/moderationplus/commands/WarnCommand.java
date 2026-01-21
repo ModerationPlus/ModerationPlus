@@ -27,6 +27,7 @@ public class WarnCommand extends AbstractCommand {
     public WarnCommand(ModerationPlus plugin) {
         super("warn", "Warn a player");
         this.plugin = plugin;
+        this.requirePermission("moderation.warn");
         this.playerArg = withRequiredArg("player", "Player to warn", (ArgumentType<String>) ArgTypes.STRING);
         this.reasonArg = withRequiredArg("reason", "Warning reason", (ArgumentType<String>) ArgTypes.STRING);
         setAllowsExtraArguments(true);
@@ -35,10 +36,6 @@ public class WarnCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.warn")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 

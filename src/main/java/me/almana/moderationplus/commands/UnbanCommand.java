@@ -29,16 +29,13 @@ public class UnbanCommand extends AbstractCommand {
     public UnbanCommand(ModerationPlus plugin) {
         super("unban", "Unban a player");
         this.plugin = plugin;
+        this.requirePermission("moderation.unban");
         this.playerArg = withRequiredArg("player", "Player to unban", (ArgumentType) ArgTypes.STRING);
     }
 
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
-        if (!sender.hasPermission("moderation.unban")) {
-            ctx.sendMessage(Message.raw("You do not have permission to use this command.").color(Color.RED));
-            return CompletableFuture.completedFuture(null);
-        }
 
         String targetName = ctx.get(playerArg);
 
