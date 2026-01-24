@@ -40,7 +40,7 @@ public class NotesCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Resolve UUID
+
         UUID targetUuid = null;
         String resolvedName = targetName;
 
@@ -70,10 +70,10 @@ public class NotesCommand extends AbstractCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Send header
+
             ctx.sendMessage(Message.raw("Notes for " + resolvedName + ":").color(Color.ORANGE));
 
-            // Format and send
+
             int index = 1;
             for (StaffNote note : notes) {
                 String timestamp = DATE_FORMATTER.format(Instant.ofEpochMilli(note.createdAt()));
@@ -86,7 +86,7 @@ public class NotesCommand extends AbstractCommand {
                         if (issuerData != null) {
                             issuerName = issuerData.username();
                         } else {
-                            // Check cache
+
                             PlayerRef issuerRef = Universe.get().getPlayer(issuerId);
                             if (issuerRef != null)
                                 issuerName = issuerRef.getUsername();
@@ -97,8 +97,8 @@ public class NotesCommand extends AbstractCommand {
 
                 String line = String.format("%d) (%s) %s — by %s",
                         index, timestamp, note.message(), issuerName);
-                ctx.sendMessage(Message.raw(line).color(Color.WHITE)); // White color
-                // Simplified color
+                ctx.sendMessage(Message.raw(line).color(Color.WHITE));
+
                 index++;
             }
 

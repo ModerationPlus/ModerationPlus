@@ -41,7 +41,7 @@ public class KickCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Parse reason
+
         String fullInput = ctx.getInputString();
         String reason = "Kicked by an operator.";
         String cmdPrefix = "kick " + targetName;
@@ -56,7 +56,7 @@ public class KickCommand extends AbstractCommand {
 
         String issuerUuid = (sender instanceof Player) ? sender.getUuid().toString() : "CONSOLE";
 
-        // Check online
+
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
             ctx.sendMessage(Message.raw("Player '" + targetName + "' not found in database.").color(Color.RED));
@@ -76,7 +76,7 @@ public class KickCommand extends AbstractCommand {
 
         String resolvedName = ref.getUsername();
 
-        // Check bypass
+
         if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
                 "moderation.bypass")) {
             ctx.sendMessage(Message.raw(resolvedName + " cannot be punished.").color(Color.RED));
@@ -84,18 +84,18 @@ public class KickCommand extends AbstractCommand {
         }
 
         try {
-            // Record punishment
+
             PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
-            // Kick inactive
+
             Punishment kick = new Punishment(0, playerData.id(), "KICK", issuerUuid, reason, System.currentTimeMillis(),
                     0, false, "{}");
             plugin.getStorageManager().createPunishment(kick);
 
-            // Notify staff
+
             String staffMsg = "[Staff] " + sender.getDisplayName() + " kicked " + resolvedName + " (" + reason + ")";
             plugin.notifyStaff(Message.raw(staffMsg).color(Color.GREEN));
 
-            // Execute kick
+
 
             if (ref != null && ref.isValid()) {
                 final String finalReason = reason;

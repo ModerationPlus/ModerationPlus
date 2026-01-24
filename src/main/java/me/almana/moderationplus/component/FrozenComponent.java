@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
 
 public class FrozenComponent implements Component<EntityStore> {
 
-    // Register component
+
 
     public static ComponentType<EntityStore, FrozenComponent> TYPE;
 
@@ -23,11 +23,11 @@ public class FrozenComponent implements Component<EntityStore> {
         this.origin.assign(origin);
     }
 
-    // Default constructor
+
     public FrozenComponent() {
     }
 
-    // Copy constructor
+
     public FrozenComponent(FrozenComponent other) {
         this.origin.assign(other.origin);
     }

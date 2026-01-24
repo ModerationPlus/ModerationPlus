@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.command.system.arguments.types.ArgumentTyp
 
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import java.awt.Color;
 import me.almana.moderationplus.ModerationPlus;
 import me.almana.moderationplus.storage.Punishment;
@@ -62,7 +63,7 @@ public class UnmuteCommand extends AbstractCommand {
                 plugin.getStorageManager().deactivatePunishment(p.id());
             }
 
-            // Send messages
+
             String staffMsg = "[Staff] " + sender.getDisplayName() + " unmuted " + resolvedName;
             Universe.get().getPlayers().forEach(p -> {
                 if (p.getPacketHandler().getAuth() != null

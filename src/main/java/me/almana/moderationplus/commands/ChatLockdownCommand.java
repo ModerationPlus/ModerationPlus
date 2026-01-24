@@ -32,7 +32,7 @@ public class ChatLockdownCommand extends AbstractCommand {
         try {
             mode = ctx.get(modeArg);
         } catch (Exception e) {
-            // Toggle if null
+
         }
 
         boolean newState;

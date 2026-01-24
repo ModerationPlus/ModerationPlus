@@ -1,0 +1,11 @@
+{
+    "database": {
+        "flush_interval_seconds": 600
+    },
+    "jail": {
+        "radius": 10.0
+    },
+    "web_panel": {
+        "enabled": false
+    }
+}

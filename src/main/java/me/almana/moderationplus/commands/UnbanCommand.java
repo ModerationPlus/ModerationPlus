@@ -13,6 +13,7 @@ import com.hypixel.hytale.server.core.modules.accesscontrol.provider.HytaleBanPr
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.NameMatching;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import me.almana.moderationplus.ModerationPlus;
 import me.almana.moderationplus.storage.Punishment;
 import me.almana.moderationplus.storage.StorageManager.PlayerData;
@@ -59,7 +60,7 @@ public class UnbanCommand extends AbstractCommand {
 
         try {
             boolean nativeUnbanned = false;
-            // Native unban
+
             HytaleBanProvider banProvider = plugin.getBanProvider();
             if (banProvider != null) {
                 if (banProvider.hasBan(targetUuid)) {
@@ -75,7 +76,7 @@ public class UnbanCommand extends AbstractCommand {
                         .color(Color.RED));
             }
 
-            // Database unban
+
             List<Punishment> activeBans = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(), "BAN");
             boolean dbUnbanned = false;
             if (!activeBans.isEmpty()) {

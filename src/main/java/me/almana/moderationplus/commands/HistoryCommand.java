@@ -41,7 +41,7 @@ public class HistoryCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Resolve UUID
+
 
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
@@ -68,13 +68,13 @@ public class HistoryCommand extends AbstractCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Sort by date
+
             punishments.sort((a, b) -> Long.compare(b.createdAt(), a.createdAt()));
 
-            // Send header
+
             ctx.sendMessage(Message.raw("History for " + resolvedName + ":").color(Color.ORANGE));
 
-            // Format and send
+
             int index = 1;
             for (Punishment p : punishments) {
                 String details = formatDetails(p);
@@ -93,12 +93,12 @@ public class HistoryCommand extends AbstractCommand {
     }
 
     private String formatDetails(Punishment p) {
-        // Check permanent
+
         if (p.expiresAt() == 0) {
             return "Permanent";
         }
 
-        // Calculate duration
+
         long duration = p.expiresAt() - p.createdAt();
         return TimeUtils.formatDuration(duration);
     }

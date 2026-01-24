@@ -22,12 +22,15 @@ public class ModerationPlus extends JavaPlugin {
         super(init);
         this.storageManager = new StorageManager();
         this.configManager = new me.almana.moderationplus.config.ConfigManager();
+        this.moderationService = new me.almana.moderationplus.service.ModerationService(this);
     }
 
     private final java.util.Map<java.util.UUID, Long> lastMuteFeedback = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile boolean chatLocked = false;
     private final me.almana.moderationplus.config.ConfigManager configManager;
     private final java.util.Set<java.util.UUID> vanishedPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final me.almana.moderationplus.service.ModerationService moderationService;
+    private me.almana.moderationplus.web.WebPanelPollingService webPanelPollingService;
 
     @Override
     protected void setup() {
@@ -35,7 +38,6 @@ public class ModerationPlus extends JavaPlugin {
         storageManager.init();
         configManager.saveConfig();
 
-        // Register components
         me.almana.moderationplus.component.FrozenComponent.TYPE = getEntityStoreRegistry().registerComponent(
                 me.almana.moderationplus.component.FrozenComponent.class,
                 me.almana.moderationplus.component.FrozenComponent::new);
@@ -43,7 +45,6 @@ public class ModerationPlus extends JavaPlugin {
                 me.almana.moderationplus.component.JailedComponent.class,
                 me.almana.moderationplus.component.JailedComponent::new);
 
-        // Register systems
         getEntityStoreRegistry().registerSystem(new me.almana.moderationplus.system.PlayerFreezeSystem());
 
         getCommandRegistry().registerCommand(new BanCommand(this));
@@ -75,7 +76,6 @@ public class ModerationPlus extends JavaPlugin {
                 me.almana.moderationplus.storage.StorageManager.PlayerData playerData = storageManager
                         .getOrCreatePlayer(event.getUuid(), event.getUsername());
 
-                // Check expired mutes
                 java.util.List<me.almana.moderationplus.storage.Punishment> mutes = storageManager
                         .getActivePunishmentsByType(playerData.id(), "MUTE");
                 for (me.almana.moderationplus.storage.Punishment p : mutes) {
@@ -86,7 +86,6 @@ public class ModerationPlus extends JavaPlugin {
                     }
                 }
 
-                // Check expired bans
                 java.util.List<me.almana.moderationplus.storage.Punishment> bans = storageManager
                         .getActivePunishmentsByType(playerData.id(), "BAN");
                 for (me.almana.moderationplus.storage.Punishment p : bans) {
@@ -97,11 +96,10 @@ public class ModerationPlus extends JavaPlugin {
                     }
                 }
 
-                // Check jail status
                 java.util.List<me.almana.moderationplus.storage.Punishment> jails = storageManager
                         .getActivePunishmentsByType(playerData.id(), "JAIL");
                 if (!jails.isEmpty() && configManager.hasJailLocation()) {
-                    // Teleport jailed player
+
                     com.hypixel.hytale.server.core.universe.PlayerRef ref = com.hypixel.hytale.server.core.universe.Universe
                             .get().getPlayer(event.getUsername(), com.hypixel.hytale.server.core.NameMatching.EXACT);
                     if (ref != null && ref.isValid()) {
@@ -109,11 +107,9 @@ public class ModerationPlus extends JavaPlugin {
                         com.hypixel.hytale.math.vector.Vector3d jailPos = new com.hypixel.hytale.math.vector.Vector3d(
                                 jailLoc[0], jailLoc[1], jailLoc[2]);
 
-                        // Add jail/freeze
                         addJailedPlayer(event.getUuid(), jailPos);
                         addFrozenPlayer(event.getUuid(), jailPos);
 
-                        // Initial teleport
                         com.hypixel.hytale.math.vector.Vector3f jailRot = new com.hypixel.hytale.math.vector.Vector3f(0,
                                 0, 0);
                         com.hypixel.hytale.server.core.modules.entity.teleport.Teleport teleport = new com.hypixel.hytale.server.core.modules.entity.teleport.Teleport(
@@ -128,7 +124,6 @@ public class ModerationPlus extends JavaPlugin {
             }
         });
 
-        // Register VanishedPlayerIconMarkerProvider for existing worlds
         for (com.hypixel.hytale.server.core.universe.world.World world : com.hypixel.hytale.server.core.universe.Universe
                 .get().getWorlds().values()) {
             world.getWorldMapManager().addMarkerProvider("playerIcons",
@@ -143,7 +138,7 @@ public class ModerationPlus extends JavaPlugin {
 
         getEventRegistry().register(com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent.class,
                 event -> {
-                    // Cleanup ECS
+
                     vanishedPlayers.remove(event.getPlayerRef().getUuid());
                 });
 
@@ -173,7 +168,6 @@ public class ModerationPlus extends JavaPlugin {
                                     return event;
                                 }
 
-                                // Handle vanish chat
                                 if (isVanished(uuid)) {
                                     event.setCancelled(true);
                                     Message format = Message
@@ -189,14 +183,13 @@ public class ModerationPlus extends JavaPlugin {
 
                                 if (!mutes.isEmpty()) {
                                     for (me.almana.moderationplus.storage.Punishment p : mutes) {
-                                        // Check expiry
+
                                         if (p.expiresAt() > 0) {
                                             if (System.currentTimeMillis() > p.expiresAt()) {
                                                 storageManager.deactivatePunishment(p.id());
                                                 continue;
                                             }
 
-                                            // Mute feedback
                                             event.setCancelled(true);
                                             long now = System.currentTimeMillis();
                                             long last = lastMuteFeedback.getOrDefault(uuid, 0L);
@@ -212,7 +205,7 @@ public class ModerationPlus extends JavaPlugin {
                                             }
                                             return event;
                                         } else {
-                                            // Permanent mute feedback
+
                                             event.setCancelled(true);
                                             long now = System.currentTimeMillis();
                                             long last = lastMuteFeedback.getOrDefault(uuid, 0L);
@@ -246,6 +239,12 @@ public class ModerationPlus extends JavaPlugin {
         logger.at(Level.INFO).log("Database auto-flush scheduled every %d seconds", flushInterval);
 
         logger.at(Level.INFO).log("ModerationPlus has been enabled!");
+
+        if (configManager.isWebPanelEnabled()) {
+            new me.almana.moderationplus.web.WebPanelBootstrap().init(this);
+            this.webPanelPollingService = new me.almana.moderationplus.web.WebPanelPollingService(this);
+            this.webPanelPollingService.start();
+        }
     }
 
     public void notifyStaff(String message) {
@@ -265,6 +264,9 @@ public class ModerationPlus extends JavaPlugin {
 
     @Override
     protected void shutdown() {
+        if (webPanelPollingService != null) {
+            webPanelPollingService.stop();
+        }
         if (storageManager != null) {
             storageManager.close();
         }
@@ -277,17 +279,16 @@ public class ModerationPlus extends JavaPlugin {
 
     public com.hypixel.hytale.server.core.modules.accesscontrol.provider.HytaleBanProvider getBanProvider() {
         try {
-            // Lookup provider
+
             com.hypixel.hytale.server.core.modules.accesscontrol.AccessControlModule module = com.hypixel.hytale.server.core.modules.accesscontrol.AccessControlModule
                     .get();
 
-            // Try getBanProvider
             try {
                 java.lang.reflect.Method method = module.getClass().getMethod("getBanProvider");
                 return (com.hypixel.hytale.server.core.modules.accesscontrol.provider.HytaleBanProvider) method
                         .invoke(module);
             } catch (NoSuchMethodException e) {
-                // Fallback iteration
+
                 for (java.lang.reflect.Field field : module.getClass().getDeclaredFields()) {
                     if (com.hypixel.hytale.server.core.modules.accesscontrol.provider.HytaleBanProvider.class
                             .isAssignableFrom(field.getType())) {
@@ -300,7 +301,7 @@ public class ModerationPlus extends JavaPlugin {
         } catch (Exception e) {
             logger.at(Level.SEVERE).withCause(e).log("Could not retrieve HytaleBanProvider!");
         }
-        return null; // Should not happen if module is present
+        return null;
     }
 
     public boolean getChatLocked() {
@@ -321,7 +322,7 @@ public class ModerationPlus extends JavaPlugin {
             if (world != null) {
                 return java.util.concurrent.CompletableFuture.runAsync(() -> {
                     if (ref.isValid()) {
-                        // Check presence
+
                         if (ref.getReference().getStore().getComponent(ref.getReference(),
                                 me.almana.moderationplus.component.FrozenComponent.getComponentType()) != null) {
                             return;
@@ -398,7 +399,7 @@ public class ModerationPlus extends JavaPlugin {
             if (world != null) {
                 return java.util.concurrent.CompletableFuture.runAsync(() -> {
                     if (ref.isValid()) {
-                        // Check presence
+
                         if (ref.getReference().getStore().getComponent(ref.getReference(),
                                 me.almana.moderationplus.component.JailedComponent.getComponentType()) != null) {
                             return;
@@ -440,7 +441,6 @@ public class ModerationPlus extends JavaPlugin {
         return java.util.concurrent.CompletableFuture.completedFuture(false);
     }
 
-    // Check jailed
     public java.util.concurrent.CompletableFuture<Boolean> isJailed(java.util.UUID uuid) {
         com.hypixel.hytale.server.core.universe.PlayerRef ref = com.hypixel.hytale.server.core.universe.Universe.get()
                 .getPlayer(uuid);
@@ -462,7 +462,7 @@ public class ModerationPlus extends JavaPlugin {
     }
 
     public java.util.Map<java.util.UUID, com.hypixel.hytale.math.vector.Vector3d> getJailedPlayers() {
-        // Empty map
+
         return new java.util.HashMap<>();
     }
 
@@ -476,5 +476,9 @@ public class ModerationPlus extends JavaPlugin {
 
     public boolean isVanished(java.util.UUID uuid) {
         return vanishedPlayers.contains(uuid);
+    }
+
+    public me.almana.moderationplus.service.ModerationService getModerationService() {
+        return moderationService;
     }
 }

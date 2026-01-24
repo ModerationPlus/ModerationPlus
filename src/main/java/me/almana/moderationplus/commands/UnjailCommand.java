@@ -32,7 +32,7 @@ public class UnjailCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Resolve UUID
+
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
             ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
@@ -54,8 +54,7 @@ public class UnjailCommand extends AbstractCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Deactivate jail
-            // Get active
+
             java.util.List<me.almana.moderationplus.storage.Punishment> jails = plugin.getStorageManager()
                     .getActivePunishmentsByType(playerData.id(), "JAIL");
             String restoreLocData = null;
@@ -70,11 +69,11 @@ public class UnjailCommand extends AbstractCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Remove components
+
             plugin.removeJailedPlayer(targetUuid);
             plugin.removeFrozenPlayer(targetUuid);
 
-            // Restore location
+
             if (restoreLocData != null && !restoreLocData.isEmpty() && ref != null && ref.isValid()) {
                 try {
                     String[] parts = restoreLocData.split(":");
@@ -87,12 +86,12 @@ public class UnjailCommand extends AbstractCommand {
                             double z = Double.parseDouble(coords[2]);
                             float yaw = Float.parseFloat(coords[3]);
                             float pitch = Float.parseFloat(coords[4]);
-                            // Unused roll
+
 
                             com.hypixel.hytale.server.core.universe.world.World world = com.hypixel.hytale.server.core.universe.Universe
                                     .get().getWorld(worldUuid);
                             if (world != null) {
-                                // Teleport back
+
                                 com.hypixel.hytale.math.vector.Vector3d targetPos = new com.hypixel.hytale.math.vector.Vector3d(
                                         x, y, z);
                                 com.hypixel.hytale.math.vector.Vector3f targetRot = new com.hypixel.hytale.math.vector.Vector3f(
@@ -116,7 +115,7 @@ public class UnjailCommand extends AbstractCommand {
                 }
             }
 
-            // Notify staff
+
             String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
             plugin.notifyStaff(
                     Message.raw("[Staff] " + issuerName + " unjailed " + resolvedName + ".").color(Color.GREEN));

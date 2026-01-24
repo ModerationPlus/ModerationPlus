@@ -40,7 +40,7 @@ public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
     public void tick(float dt, int index, @Nonnull ArchetypeChunk<EntityStore> archetypeChunk,
             @Nonnull Store<EntityStore> store, @Nonnull CommandBuffer<EntityStore> commandBuffer) {
 
-        // Check components
+
         FrozenComponent frozen = archetypeChunk.getComponent(index, FrozenComponent.getComponentType());
         JailedComponent jailed = archetypeChunk.getComponent(index, JailedComponent.getComponentType());
 
@@ -57,14 +57,14 @@ public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
         if (frozen != null) {
             handleFreeze(frozen, playerInput, transform, archetypeChunk, index, commandBuffer);
         } else {
-            // Jail fallback
+
             handleJail(jailed, transform, archetypeChunk, index, commandBuffer);
         }
     }
 
     private void handleFreeze(FrozenComponent frozen, PlayerInput playerInput, TransformComponent transform,
             ArchetypeChunk<EntityStore> chunk, int index, CommandBuffer<EntityStore> commandBuffer) {
-        // Neutralize input
+
         List<PlayerInput.InputUpdate> queue = playerInput.getMovementUpdateQueue();
         boolean cleared = false;
 
@@ -77,13 +77,13 @@ public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
             }
         }
 
-        // Snapback logic
+
         Vector3d currentPos = transform.getPosition();
         Vector3d origin = frozen.getOrigin();
 
         double distSq = currentPos.distanceSquaredTo(origin);
 
-        // Squared threshold
+
         if (cleared || distSq > 0.01) {
             scheduleTeleport(chunk, index, origin, commandBuffer);
         }
@@ -91,35 +91,34 @@ public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
 
     private void handleJail(JailedComponent jailed, TransformComponent transform, ArchetypeChunk<EntityStore> chunk,
             int index, CommandBuffer<EntityStore> commandBuffer) {
-        // Jail containment
+
         Vector3d currentPos = transform.getPosition();
         Vector3d origin = jailed.getOrigin();
         double radius = jailed.getRadius();
 
-        // Radius check
+
 
         double distSq = currentPos.distanceSquaredTo(origin);
         if (distSq > (radius * radius)) {
-            // Teleport origin
+
             scheduleTeleport(chunk, index, origin, commandBuffer);
         }
     }
 
     private void scheduleTeleport(ArchetypeChunk<EntityStore> chunk, int index, Vector3d target,
             CommandBuffer<EntityStore> commandBuffer) {
-        // Avoid spam
+
         if (chunk.getComponent(index, Teleport.getComponentType()) != null) {
             return;
         }
 
-        // Add teleport
-        // Preserve rotation
+
         TransformComponent transform = chunk.getComponent(index, TransformComponent.getComponentType());
         Vector3f rotation = transform != null ? transform.getRotation() : new Vector3f(0, 0, 0);
 
         Teleport teleport = new Teleport(target, rotation);
 
-        // Add safely
+
         commandBuffer.addComponent(chunk.getReferenceTo(index), Teleport.getComponentType(), teleport);
     }
 

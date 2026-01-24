@@ -61,12 +61,12 @@ public class BanCommand extends AbstractCommand {
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
 
         if (targetUuid == null) {
-            // Database fallback
+
             ctx.sendMessage(Message.raw("Player '" + targetName + "' not found in database.").color(Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 
-        String resolvedName = targetName; // Resolve name
+        String resolvedName = targetName;
         PlayerRef ref = Universe.get().getPlayer(targetUuid);
         boolean isOnline = false;
 
@@ -81,7 +81,7 @@ public class BanCommand extends AbstractCommand {
             }
         }
 
-        // Use target UUID
+
         PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
 
         try {

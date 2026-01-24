@@ -50,12 +50,12 @@ public class TempBanCommand extends AbstractCommand {
         String targetName = ctx.get(playerArg);
         String durationStr = ctx.get(durationArg);
 
-        // Parse reason
+
         String fullInput = ctx.getInputString();
         String reason = "Banned by an operator.";
         int dIdx = fullInput.toLowerCase().indexOf(" " + durationStr.toLowerCase() + " ");
         if (dIdx != -1) {
-            // Parse substring
+
             String sub = fullInput.substring(dIdx + durationStr.length() + 2).trim();
             if (!sub.isEmpty())
                 reason = sub;
@@ -79,7 +79,7 @@ public class TempBanCommand extends AbstractCommand {
         String resolvedName = targetName;
         boolean isOnline = false;
 
-        // Resolve UUID
+
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
 
         if (targetUuid == null) {
@@ -92,7 +92,7 @@ public class TempBanCommand extends AbstractCommand {
             resolvedName = ref.getUsername();
             isOnline = true;
 
-            // Check bypass
+
             if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
                     "moderation.bypass")) {
                 ctx.sendMessage(Message.raw(resolvedName + " cannot be punished.").color(Color.RED));
@@ -103,7 +103,7 @@ public class TempBanCommand extends AbstractCommand {
         PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
 
         try {
-            // Native ban
+
             HytaleBanProvider banProvider = plugin.getBanProvider();
             if (banProvider != null) {
                 if (banProvider.hasBan(targetUuid)) {
@@ -123,7 +123,7 @@ public class TempBanCommand extends AbstractCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Record punishment
+
             List<Punishment> activeBans = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(), "BAN");
             if (activeBans.isEmpty()) {
                 Punishment ban = new Punishment(0, playerData.id(), "BAN", issuerUuid, reason,

@@ -39,7 +39,7 @@ public class NoteCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Parse message
+
         String fullInput = ctx.getInputString();
         String message = "Note by staff";
         String cmdPrefix = "note " + targetName;
@@ -57,7 +57,6 @@ public class NoteCommand extends AbstractCommand {
         String issuerUuid = (sender instanceof Player) ? sender.getUuid().toString() : "CONSOLE";
         String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
 
-        // Resolve UUID
         UUID targetUuid = null;
         String resolvedName = targetName;
 
@@ -77,11 +76,11 @@ public class NoteCommand extends AbstractCommand {
         try {
             PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
 
-            // Create note
+
             StaffNote note = new StaffNote(0, playerData.id(), issuerUuid, message, System.currentTimeMillis());
             plugin.getStorageManager().createStaffNote(note);
 
-            // Notify staff
+
             String staffMsg = "[Staff] " + issuerName + " added a note to " + resolvedName + " (" + message + ")";
             plugin.notifyStaff(Message.raw(staffMsg).color(Color.YELLOW));
 

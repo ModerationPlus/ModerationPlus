@@ -44,12 +44,12 @@ public class TempMuteCommand extends AbstractCommand {
         String targetName = ctx.get(playerArg);
         String durationStr = ctx.get(durationArg);
 
-        // Parse reason
+
         String fullInput = ctx.getInputString();
         String reason = "Muted by an operator.";
         int dIdx = fullInput.toLowerCase().indexOf(" " + durationStr.toLowerCase() + " ");
         if (dIdx != -1) {
-            // Parse substring
+
             String sub = fullInput.substring(dIdx + durationStr.length() + 2).trim();
             if (!sub.isEmpty())
                 reason = sub;
@@ -71,7 +71,7 @@ public class TempMuteCommand extends AbstractCommand {
 
         long expiresAtMillis = System.currentTimeMillis() + duration;
 
-        // Resolve UUID
+
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
             ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
@@ -84,7 +84,7 @@ public class TempMuteCommand extends AbstractCommand {
             resolvedName = ref.getUsername();
         }
 
-        // Check bypass
+
         if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
                 "moderation.bypass")) {
             ctx.sendMessage(Message.raw(resolvedName + " cannot be punished.").color(Color.RED));
@@ -94,7 +94,7 @@ public class TempMuteCommand extends AbstractCommand {
         try {
             PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
 
-            // Check active
+
             List<Punishment> activeMutes = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(),
                     "MUTE");
             if (!activeMutes.isEmpty()) {
@@ -102,17 +102,17 @@ public class TempMuteCommand extends AbstractCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Create punishment
+
             Punishment mute = new Punishment(0, playerData.id(), "MUTE", issuerUuid, reason, System.currentTimeMillis(),
                     expiresAtMillis, true, "{}");
             plugin.getStorageManager().createPunishment(mute);
 
-            // Notify staff
+
             String staffMsg = "[Staff] " + sender.getDisplayName() + " temp-muted " + resolvedName + " for "
                     + durationStr + " (" + reason + ")";
             plugin.notifyStaff(Message.raw(staffMsg).color(Color.GREEN));
 
-            // Notify target
+
             if (ref != null && ref.isValid()) {
                 ref.sendMessage(Message.raw("You have been muted for " + durationStr + ".\nReason: " + reason)
                         .color(Color.RED));

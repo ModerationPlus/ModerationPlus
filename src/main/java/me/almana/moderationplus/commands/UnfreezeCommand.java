@@ -33,7 +33,7 @@ public class UnfreezeCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Resolve UUID
+
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
             ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(java.awt.Color.RED));
@@ -48,14 +48,14 @@ public class UnfreezeCommand extends AbstractCommand {
 
         final String finalResolvedName = resolvedName;
 
-        // Remove frozen
+
         return plugin.removeFrozenPlayer(targetUuid).thenCompose(wasFrozen -> {
             if (!wasFrozen) {
                 ctx.sendMessage(Message.raw(finalResolvedName + " is not frozen.").color(java.awt.Color.RED));
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Notify staff
+
             String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
             plugin.notifyStaff(Message.raw("[Staff] " + issuerName + " unfroze " + finalResolvedName + ".")
                     .color(java.awt.Color.GREEN));

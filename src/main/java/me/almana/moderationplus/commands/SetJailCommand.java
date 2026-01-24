@@ -38,13 +38,12 @@ public class SetJailCommand extends AbstractCommand {
         CommandSender sender = ctx.sender();
 
         if (xArg.provided(ctx) && yArg.provided(ctx) && zArg.provided(ctx)) {
-            // Explicit coordinates
+
             double x = ctx.get(xArg);
             double y = ctx.get(yArg);
             double z = ctx.get(zArg);
             setJailLocation(ctx, x, y, z);
-        } else {
-            // Player position
+
             if (!(sender instanceof Player)) {
                 ctx.sendMessage(Message.raw("Console must specify coordinates: /setjail <x> <y> <z>").color(Color.RED));
                 return CompletableFuture.completedFuture(null);
@@ -52,12 +51,12 @@ public class SetJailCommand extends AbstractCommand {
             Player player = (Player) sender;
             final String username = player.getDisplayName();
 
-            // Resolve component
+
             CompletableFuture.runAsync(() -> {
                 try {
                     PlayerRef ref = Universe.get().getPlayer(username, NameMatching.EXACT);
                     if (ref == null || !ref.isValid()) {
-                        // Invalid reference
+
                         player.sendMessage(Message.raw("Failed to resolve your player reference.").color(Color.RED));
                         return;
                     }

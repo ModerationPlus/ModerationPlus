@@ -42,7 +42,7 @@ public class JailCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Check location
+
         if (!plugin.getConfigManager().hasJailLocation()) {
             ctx.sendMessage(Message.raw("Jail location is not set. Use /setjail to configure.").color(Color.RED));
             if (sender.hasPermission("moderation.setjail")) {
@@ -51,7 +51,7 @@ public class JailCommand extends AbstractCommand {
             return CompletableFuture.completedFuture(null);
         }
 
-        // Resolve UUID
+
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
             ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
@@ -67,7 +67,7 @@ public class JailCommand extends AbstractCommand {
             isOnline = true;
         }
 
-        // Check bypass
+
         if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
                 "moderation.jail.bypass")) {
             ctx.sendMessage(Message.raw(resolvedName + " cannot be jailed.").color(Color.RED));
@@ -77,7 +77,7 @@ public class JailCommand extends AbstractCommand {
         try {
             PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
 
-            // Teleport online
+
             if (isOnline && ref != null) {
                 UUID worldUuid = ref.getWorldUuid();
                 if (worldUuid != null) {
@@ -85,7 +85,7 @@ public class JailCommand extends AbstractCommand {
                     if (world != null) {
                         ((Executor) world).execute(() -> {
                             if (ref.isValid()) {
-                                // Capture location
+
                                 com.hypixel.hytale.server.core.modules.entity.component.TransformComponent transform = ref
                                         .getReference().getStore().getComponent(ref.getReference(),
                                                 com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
@@ -94,16 +94,16 @@ public class JailCommand extends AbstractCommand {
                                 if (transform != null) {
                                     Vector3d pos = transform.getPosition();
                                     Vector3f rot = transform.getRotation();
-                                    // Location format
+
                                     originalLocStr = worldUuid.toString() + ":" + pos.x + "," + pos.y + "," + pos.z
                                             + "," + rot.x + "," + rot.y + "," + rot.z;
                                 }
 
-                                // Async database insert
+
                                 final String finalOriginalLocStr = originalLocStr;
                                 CompletableFuture.runAsync(() -> {
                                     try {
-                                        // Insert punishment
+
                                         String issuerUuid = (sender instanceof Player) ? sender.getUuid().toString()
                                                 : "CONSOLE";
                                         Punishment punishment = new Punishment(
@@ -115,7 +115,7 @@ public class JailCommand extends AbstractCommand {
                                                 System.currentTimeMillis(),
                                                 0,
                                                 true,
-                                                finalOriginalLocStr); // Store location
+                                                finalOriginalLocStr);
                                         plugin.getStorageManager().insertPunishment(punishment);
                                     } catch (Exception e) {
                                         e.printStackTrace();
@@ -130,7 +130,7 @@ public class JailCommand extends AbstractCommand {
                                 ref.getReference().getStore().addComponent(ref.getReference(),
                                         Teleport.getComponentType(), teleport);
 
-                                // Add components
+
                                 plugin.addJailedPlayer(targetUuid, jailPos);
                                 plugin.addFrozenPlayer(targetUuid, jailPos);
                             }
@@ -138,7 +138,7 @@ public class JailCommand extends AbstractCommand {
                     }
                 }
             } else {
-                // Offline player
+
                 String issuerUuid = (sender instanceof Player) ? sender.getUuid().toString() : "CONSOLE";
                 Punishment punishment = new Punishment(
                         0,
@@ -149,11 +149,11 @@ public class JailCommand extends AbstractCommand {
                         System.currentTimeMillis(),
                         0,
                         true,
-                        null); // No location
+                        null);
                 plugin.getStorageManager().insertPunishment(punishment);
             }
 
-            // Notify staff
+
             String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
             plugin.notifyStaff(Message.raw("[Staff] " + issuerName + " jailed " + resolvedName + ".").color(Color.RED));
 

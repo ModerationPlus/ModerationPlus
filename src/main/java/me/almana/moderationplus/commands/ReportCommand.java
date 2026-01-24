@@ -77,7 +77,7 @@ public class ReportCommand extends AbstractCommand {
 
         String[] args = fullInput.split("\\s+");
         if (args.length > 2) {
-            // Reconstruct reason
+
             int start = fullInput.indexOf(args[2]);
             if (start != -1) {
                 reason = fullInput.substring(start).trim();

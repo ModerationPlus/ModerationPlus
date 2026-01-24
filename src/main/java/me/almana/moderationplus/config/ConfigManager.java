@@ -25,27 +25,33 @@ public class ConfigManager {
     private void loadConfig() {
         File configFile = new File(CONFIG_PATH);
         if (!configFile.exists()) {
-            config = new JsonObject();
-            saveConfig();
-        } else {
-            try (FileReader reader = new FileReader(configFile)) {
-                config = GSON.fromJson(reader, JsonObject.class);
-                if (config == null) {
-                    config = new JsonObject();
+            try {
+                if (configFile.getParentFile() != null) {
+                    configFile.getParentFile().mkdirs();
+                }
+                try (java.io.InputStream in = getClass().getClassLoader()
+                        .getResourceAsStream("moderationplus_config.json")) {
+                    if (in != null) {
+                        java.nio.file.Files.copy(in, configFile.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    } else {
+                        logger.at(Level.WARNING).log("Default config resource not found!");
+                    }
                 }
             } catch (Exception e) {
-                logger.at(Level.SEVERE).withCause(e).log("Failed to load config, using defaults");
-                config = new JsonObject();
+                logger.at(Level.SEVERE).withCause(e).log("Failed to copy default config");
             }
         }
 
-        if (!config.has("database")) {
-            config.add("database", new JsonObject());
+        try (FileReader reader = new FileReader(configFile)) {
+            config = GSON.fromJson(reader, JsonObject.class);
+        } catch (Exception e) {
+            logger.at(Level.SEVERE).withCause(e).log("Failed to load config, using defaults");
+            config = new JsonObject();
         }
-        JsonObject db = config.getAsJsonObject("database");
-        if (!db.has("flush_interval_seconds")) {
-            db.addProperty("flush_interval_seconds", 600);
-            saveConfig();
+
+        if (config == null) {
+            config = new JsonObject();
         }
     }
 
@@ -124,5 +130,47 @@ public class ConfigManager {
 
     public boolean hasJailLocation() {
         return config.has("jail") && getJailLocation() != null;
+    }
+
+    public boolean isWebPanelEnabled() {
+        if (!config.has("web_panel")) {
+            return false;
+        }
+        JsonObject webPanel = config.getAsJsonObject("web_panel");
+        return webPanel.has("enabled") && webPanel.get("enabled").getAsBoolean();
+    }
+
+    public void setWebPanelEnabled(boolean enabled) {
+        JsonObject webPanel;
+        if (config.has("web_panel")) {
+            webPanel = config.getAsJsonObject("web_panel");
+        } else {
+            webPanel = new JsonObject();
+            config.add("web_panel", webPanel);
+        }
+        webPanel.addProperty("enabled", enabled);
+        saveConfig();
+    }
+
+    public long getWebPanelPollIntervalSeconds() {
+        if (!config.has("web_panel")) {
+            return 30;
+        }
+        JsonObject webPanel = config.getAsJsonObject("web_panel");
+        if (!webPanel.has("poll_interval_seconds")) {
+            return 30;
+        }
+        return webPanel.get("poll_interval_seconds").getAsLong();
+    }
+
+    public String getWebPanelUrl() {
+        if (!config.has("web_panel")) {
+            return "http://localhost:3000";
+        }
+        JsonObject webPanel = config.getAsJsonObject("web_panel");
+        if (!webPanel.has("url")) {
+            return "http://localhost:3000";
+        }
+        return webPanel.get("url").getAsString();
     }
 }

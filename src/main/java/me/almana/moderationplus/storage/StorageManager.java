@@ -91,6 +91,15 @@ public class StorageManager {
         if (currentVersion < 4) {
             applyMigration4();
         }
+        if (currentVersion < 5) {
+            applyMigration5();
+        }
+        if (currentVersion < 6) {
+            applyMigration6();
+        }
+        if (currentVersion < 7) {
+            applyMigration7();
+        }
     }
 
     private int getAppliedMigrationVersion() throws SQLException {
@@ -207,6 +216,37 @@ public class StorageManager {
         logger.at(Level.INFO).log("Migration 4 applied successfully.");
     }
 
+    private void applyMigration5() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE server_identity (" +
+                    "id INTEGER PRIMARY KEY CHECK (id = 1), " +
+                    "server_id TEXT NOT NULL, " +
+                    "server_secret TEXT NOT NULL" +
+                    ");");
+
+            try (PreparedStatement recordStmt = connection.prepareStatement(
+                    "INSERT INTO migrations (version, applied_at) VALUES (?, ?)")) {
+                recordStmt.setInt(1, 5);
+                recordStmt.setLong(2, System.currentTimeMillis());
+                recordStmt.executeUpdate();
+            }
+        }
+    }
+
+    private void applyMigration6() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("ALTER TABLE server_identity ADD COLUMN is_claimed INTEGER DEFAULT 0;");
+            stmt.execute("ALTER TABLE server_identity ADD COLUMN claim_token TEXT;");
+
+            try (PreparedStatement recordStmt = connection.prepareStatement(
+                    "INSERT INTO migrations (version, applied_at) VALUES (?, ?)")) {
+                recordStmt.setInt(1, 6);
+                recordStmt.setLong(2, System.currentTimeMillis());
+                recordStmt.executeUpdate();
+            }
+        }
+    }
+
     public UUID getUuidByUsername(String username) {
         String query = "SELECT uuid FROM players WHERE username = ? COLLATE NOCASE";
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
@@ -228,7 +268,7 @@ public class StorageManager {
             if (existing != null) {
                 logger.at(Level.INFO).log("Player found (reuse): %s (%s)", username, uuid);
                 updatePlayerLastSeen(uuid, username);
-                return getPlayerByUUID(uuid); // Return updated
+                return getPlayerByUUID(uuid);
             } else {
                 logger.at(Level.INFO).log("Creating new player: %s (%s)", username, uuid);
                 return createPlayer(uuid, username);
@@ -444,6 +484,115 @@ public class StorageManager {
             logger.at(Level.INFO).log("Database flushed (checkpointed).");
         } catch (SQLException e) {
             logger.at(Level.SEVERE).withCause(e).log("Failed to flush database");
+        }
+    }
+
+    public record ServerIdentity(String serverId, String serverSecret, boolean isClaimed, String claimToken) {
+    }
+
+    public ServerIdentity getOrGenerateServerIdentity() throws SQLException {
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery(
+                        "SELECT server_id, server_secret, is_claimed, claim_token FROM server_identity WHERE id = 1")) {
+            if (rs.next()) {
+                return new ServerIdentity(
+                        rs.getString("server_id"),
+                        rs.getString("server_secret"),
+                        rs.getInt("is_claimed") == 1,
+                        rs.getString("claim_token"));
+            }
+        }
+
+        String sid = UUID.randomUUID().toString();
+        byte[] b = new byte[32];
+        new java.security.SecureRandom().nextBytes(b);
+        String sec = java.util.Base64.getEncoder().encodeToString(b);
+
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "INSERT INTO server_identity (id, server_id, server_secret, is_claimed) VALUES (1, ?, ?, 0)")) {
+            stmt.setString(1, sid);
+            stmt.setString(2, sec);
+            stmt.executeUpdate();
+        }
+        return new ServerIdentity(sid, sec, false, null);
+    }
+
+    public String getOrGenerateClaimToken() throws SQLException {
+
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT claim_token, is_claimed FROM server_identity WHERE id = 1")) {
+            if (rs.next()) {
+                if (rs.getInt("is_claimed") == 1) {
+                    return null;
+                }
+                String existing = rs.getString("claim_token");
+                if (existing != null && !existing.isEmpty()) {
+                    return existing;
+                }
+            }
+        }
+
+
+        byte[] b = new byte[16];
+        new java.security.SecureRandom().nextBytes(b);
+        String token = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "UPDATE server_identity SET claim_token = ? WHERE id = 1")) {
+            stmt.setString(1, token);
+            stmt.executeUpdate();
+        }
+        return token;
+    }
+
+    public boolean completeClaim(String token) throws SQLException {
+        boolean success = false;
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "UPDATE server_identity SET is_claimed = 1, claim_token = NULL WHERE id = 1 AND claim_token = ? AND is_claimed = 0")) {
+            stmt.setString(1, token);
+            int rows = stmt.executeUpdate();
+            success = rows > 0;
+        }
+        return success;
+    }
+
+    private void applyMigration7() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE web_commands_log (" +
+                    "id TEXT PRIMARY KEY, " +
+                    "processed_at INTEGER NOT NULL" +
+                    ");");
+
+            try (PreparedStatement recordStmt = connection.prepareStatement(
+                    "INSERT INTO migrations (version, applied_at) VALUES (?, ?)")) {
+                recordStmt.setInt(1, 7);
+                recordStmt.setLong(2, System.currentTimeMillis());
+                recordStmt.executeUpdate();
+            }
+        }
+    }
+
+    public boolean hasWebCommandProcessed(String commandId) {
+        String query = "SELECT 1 FROM web_commands_log WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, commandId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            logger.at(Level.SEVERE).withCause(e).log("Failed to check processed web command: %s", commandId);
+            return false;
+        }
+    }
+
+    public void markWebCommandProcessed(String commandId) {
+        String query = "INSERT OR IGNORE INTO web_commands_log (id, processed_at) VALUES (?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, commandId);
+            stmt.setLong(2, System.currentTimeMillis());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            logger.at(Level.SEVERE).withCause(e).log("Failed to mark web command processed: %s", commandId);
         }
     }
 }

@@ -26,7 +26,7 @@ public class VanishCommand extends AbstractCommand {
     public CompletableFuture<Void> execute(CommandContext ctx) {
         CommandSender sender = ctx.sender();
 
-        // Players only
+
         if (!(sender instanceof Player)) {
             ctx.sendMessage(Message.raw("Only players can use this command.").color(java.awt.Color.RED));
 
@@ -42,51 +42,20 @@ public class VanishCommand extends AbstractCommand {
             return CompletableFuture.completedFuture(null);
         }
 
-        // Toggle vanish
-        if (plugin.isVanished(playerUuid)) {
-            // Unvanish
-            plugin.removeVanishedPlayer(playerUuid);
 
-            // Show player
-            Universe.get().getPlayers().forEach(observer -> {
-                if (observer != null && observer.isValid()) {
-                    observer.getHiddenPlayersManager().showPlayer(playerUuid);
-                }
-            });
+        me.almana.moderationplus.service.ExecutionContext context = new me.almana.moderationplus.service.ExecutionContext(
+                playerUuid,
+                playerName,
+                me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
-            ctx.sendMessage(Message.raw("You are no longer vanished.").color(java.awt.Color.GREEN));
-            plugin.notifyStaff(
-                    Message.raw("[Staff] " + playerName + " is no longer vanished.").color(java.awt.Color.GRAY));
-
-        } else {
-            // Vanish
-            plugin.addVanishedPlayer(playerUuid);
-
-            // Update visibility
-            Universe.get().getPlayers().forEach(observer -> {
-                if (observer != null && observer.isValid()) {
-                    UUID observerUuid = observer.getUuid();
-
-                    // Skip self
-                    if (observerUuid.equals(playerUuid)) {
-                        return;
-                    }
-
-                    // Check permission
-                    boolean canSeeVanished = com.hypixel.hytale.server.core.permissions.PermissionsModule.get()
-                            .hasPermission(observerUuid, "moderation.vanish.see");
-
-                    if (canSeeVanished) {
-                        observer.getHiddenPlayersManager().showPlayer(playerUuid);
+        plugin.getModerationService().toggleVanish(playerUuid, playerName, context)
+                .thenAccept(vanished -> {
+                    if (vanished) {
+                        ctx.sendMessage(Message.raw("You are now vanished.").color(java.awt.Color.GREEN));
                     } else {
-                        observer.getHiddenPlayersManager().hidePlayer(playerUuid);
+                        ctx.sendMessage(Message.raw("You are no longer vanished.").color(java.awt.Color.GREEN));
                     }
-                }
-            });
-
-            ctx.sendMessage(Message.raw("You are now vanished.").color(java.awt.Color.GREEN));
-            plugin.notifyStaff(Message.raw("[Staff] " + playerName + " vanished.").color(java.awt.Color.GRAY));
-        }
+                });
 
         return CompletableFuture.completedFuture(null);
     }

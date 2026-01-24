@@ -39,11 +39,11 @@ public class VanishedPlayerIconMarkerProvider implements WorldMapManager.MarkerP
         Predicate<PlayerRef> playerMapFilter = tracker.getPlayerMapFilter();
 
         for (PlayerRef otherPlayer : world.getPlayerRefs()) {
-            // Vanilla check: skip self
+
             if (otherPlayer.getUuid().equals(player.getUuid()))
                 continue;
 
-            // Custom check: skip vanished players
+
             if (plugin.isVanished(otherPlayer.getUuid()))
                 continue;
 

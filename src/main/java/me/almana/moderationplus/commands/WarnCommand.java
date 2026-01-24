@@ -39,7 +39,7 @@ public class WarnCommand extends AbstractCommand {
 
         String targetName = ctx.get(playerArg);
 
-        // Parse reason
+
         String fullInput = ctx.getInputString();
         String reason = "Warned by an operator.";
         String cmdPrefix = "warn " + targetName;
@@ -54,7 +54,7 @@ public class WarnCommand extends AbstractCommand {
 
         String issuerUuid = (sender instanceof Player) ? sender.getUuid().toString() : "CONSOLE";
 
-        // Resolve UUID
+
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
             ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
@@ -70,16 +70,16 @@ public class WarnCommand extends AbstractCommand {
         try {
             PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
 
-            // Create punishment
+
             Punishment warning = new Punishment(0, playerData.id(), "WARN", issuerUuid, reason,
                     System.currentTimeMillis(), 0, true, null);
             plugin.getStorageManager().createPunishment(warning);
 
-            // Notify staff
+
             String staffMsg = "[Staff] " + sender.getDisplayName() + " warned " + resolvedName + " (" + reason + ")";
             plugin.notifyStaff(Message.raw(staffMsg).color(Color.GREEN));
 
-            // Notify target
+
             if (ref != null && ref.isValid()) {
                 ref.sendMessage(Message.raw("You have been warned. Reason: " + reason).color(Color.YELLOW));
             }
