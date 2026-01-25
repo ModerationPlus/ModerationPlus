@@ -129,14 +129,25 @@ public class JailCommand extends AbstractCommand {
                 issuerName,
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
-        plugin.getModerationService().jail(targetUuid, targetName, durationMillis, reason, context).thenAccept(success -> {
-            if (success) {
-                // Success message handled by service
-            } else {
-                ctx.sendMessage(Message.raw("Failed to jail " + targetName + ".").color(Color.RED));
-            }
-        });
-        
-        return CompletableFuture.completedFuture(null);
+        me.almana.moderationplus.api.event.staff.StaffJailEvent event = new me.almana.moderationplus.api.event.staff.StaffJailEvent(
+                context.issuerUuid(), targetUuid, context.source().name(), durationMillis, reason
+        );
+
+        final long finalDuration = durationMillis;
+        final String finalReason = reason;
+
+        return CompletableFuture.runAsync(() -> plugin.getEventBus().dispatch(event), com.hypixel.hytale.server.core.HytaleServer.SCHEDULED_EXECUTOR)
+                .thenCompose(v -> {
+                    if (event.isCancelled()) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return plugin.getModerationService().jail(targetUuid, targetName, finalDuration, finalReason, context).thenAccept(success -> {
+                        if (success) {
+                            // Success message handled by service
+                        } else {
+                            ctx.sendMessage(Message.raw("Failed to jail " + targetName + ".").color(Color.RED));
+                        }
+                    });
+                });
     }
 }

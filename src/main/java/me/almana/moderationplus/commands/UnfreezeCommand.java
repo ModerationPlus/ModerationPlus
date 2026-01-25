@@ -45,15 +45,23 @@ public class UnfreezeCommand extends AbstractCommand {
                 issuerName,
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
-        plugin.getModerationService().unfreeze(targetUuid, targetName, context).thenAccept(success -> {
-            if (success) {
-                ctx.sendMessage(Message.raw("Unfroze " + targetName).color(java.awt.Color.GREEN));
-            } else {
-                ctx.sendMessage(Message.raw("Failed to unfreeze " + targetName + " (maybe not frozen?).")
-                        .color(java.awt.Color.RED));
-            }
-        });
+        me.almana.moderationplus.api.event.staff.StaffUnfreezeEvent event = new me.almana.moderationplus.api.event.staff.StaffUnfreezeEvent(
+                context.issuerUuid(), targetUuid, context.source().name()
+        );
 
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.runAsync(() -> plugin.getEventBus().dispatch(event), com.hypixel.hytale.server.core.HytaleServer.SCHEDULED_EXECUTOR)
+                .thenCompose(v -> {
+                    if (event.isCancelled()) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return plugin.getModerationService().unfreeze(targetUuid, targetName, context).thenAccept(success -> {
+                        if (success) {
+                            ctx.sendMessage(Message.raw("Unfroze " + targetName).color(java.awt.Color.GREEN));
+                        } else {
+                            ctx.sendMessage(Message.raw("Failed to unfreeze " + targetName + " (maybe not frozen?).")
+                                    .color(java.awt.Color.RED));
+                        }
+                    });
+                });
     }
 }

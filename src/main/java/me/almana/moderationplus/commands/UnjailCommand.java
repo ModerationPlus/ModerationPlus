@@ -44,15 +44,23 @@ public class UnjailCommand extends AbstractCommand {
                 issuerName,
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
-        plugin.getModerationService().unjail(targetUuid, targetName, context).thenAccept(success -> {
-            if (success) {
-                ctx.sendMessage(Message.raw("Unjailed " + targetName).color(Color.GREEN));
-            } else {
-                ctx.sendMessage(Message.raw("Failed to unjail " + targetName + " (maybe not imprisoned?).")
-                        .color(Color.RED));
-            }
-        });
+        me.almana.moderationplus.api.event.staff.StaffUnjailEvent event = new me.almana.moderationplus.api.event.staff.StaffUnjailEvent(
+                context.issuerUuid(), targetUuid, context.source().name()
+        );
 
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.runAsync(() -> plugin.getEventBus().dispatch(event), com.hypixel.hytale.server.core.HytaleServer.SCHEDULED_EXECUTOR)
+                .thenCompose(v -> {
+                    if (event.isCancelled()) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return plugin.getModerationService().unjail(targetUuid, targetName, context).thenAccept(success -> {
+                        if (success) {
+                            ctx.sendMessage(Message.raw("Unjailed " + targetName).color(Color.GREEN));
+                        } else {
+                            ctx.sendMessage(Message.raw("Failed to unjail " + targetName + " (maybe not imprisoned?).")
+                                    .color(Color.RED));
+                        }
+                    });
+                });
     }
 }

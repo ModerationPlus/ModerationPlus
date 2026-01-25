@@ -65,10 +65,13 @@ Unfreeze a player.
 - **Example:** `/unfreeze Steve`
 
 ### Jail
-Send a player to the defined jail location.
-- **Syntax:** `/jail <player> [reason]`
+Send a player to the defined jail location. Optionally specify duration and reason.
+- **Syntax:** `/jail <player> [duration] [reason]` or `/jail <player> [reason] [duration]`
 - **Permission:** `moderation.jail`
-- **Example:** `/jail Steve Griefing`
+- **Examples:** 
+  - `/jail Steve` - Permanent jail, no reason
+  - `/jail Steve 10m Griefing` - 10 minute jail
+  - `/jail Steve Griefing 10m` - Same as above (duration can be first or last)
 
 ### Unjail
 Release a player from jail.
@@ -92,9 +95,9 @@ Toggle invisibility mode. While vanished, you are hidden from other players, and
 
 ### Staff Chat
 Send a message to the staff-only chat channel.
-- **Syntax:** `/staffchat <message>` (or `/sc`)
-- **Permission:** `moderation.staffchat`
-- **Example:** `/sc Watch out for Steve`
+- **Syntax:** `/schat <message>`
+- **Permission:** `moderation.staffchat.send`
+- **Example:** `/schat Watch out for Steve`
 
 ### Chat Lockdown
 Toggle global chat lockdown. When enabled, only staff can speak in public chat.
@@ -121,10 +124,12 @@ View staff notes for a player.
 - **Example:** `/notes Steve`
 
 ### Report
-Report a player to online staff.
+Report a player to online staff. Available to all players (no permission required).
 - **Syntax:** `/report <player> <reason>`
-- **Permission:** `moderation.report`
+- **Permission:** None (all players can report)
+- **Staff Receive Permission:** `moderation.report.receive` (staff need this to see reports)
 - **Example:** `/report Steve Killaura`
+- **Cooldown:** 30 seconds between reports
 
 ### Flush
 Manually flush the database changes to disk.

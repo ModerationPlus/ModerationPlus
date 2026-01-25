@@ -18,11 +18,35 @@ public class ModerationPlus extends JavaPlugin {
     private static final HytaleLogger logger = HytaleLogger.forEnclosingClass();
     private final StorageManager storageManager;
 
+    private final me.almana.moderationplus.api.event.EventBus eventBus;
+
     public ModerationPlus(@Nonnull JavaPluginInit init) {
         super(init);
+        this.eventBus = new me.almana.moderationplus.core.event.SyncEventBus();
         this.storageManager = new StorageManager();
         this.configManager = new me.almana.moderationplus.config.ConfigManager();
         this.moderationService = new me.almana.moderationplus.service.ModerationService(this);
+        this.chatChannelRegistry = new me.almana.moderationplus.core.chat.SimpleChatChannelRegistry();
+        this.chatChannelRegistry.register(new me.almana.moderationplus.core.chat.DefaultChatChannel("staff", "mod.staff.chat", "[SC] %s: %s"));
+        this.staffChatDelivery = new me.almana.moderationplus.core.chat.DefaultStaffChatDelivery(this);
+        this.moderationStateService = new me.almana.moderationplus.core.state.CoreModerationStateService(this);
+        this.auditService = new me.almana.moderationplus.core.audit.CoreAuditService(this);
+    }
+
+    public me.almana.moderationplus.api.event.EventBus getEventBus() {
+        return eventBus;
+    }
+
+    public me.almana.moderationplus.api.chat.ChatChannelRegistry getChatChannelRegistry() {
+        return chatChannelRegistry;
+    }
+
+    public me.almana.moderationplus.api.chat.StaffChatDelivery getStaffChatDelivery() {
+        return staffChatDelivery;
+    }
+
+    public me.almana.moderationplus.api.state.ModerationStateService getModerationStateService() {
+        return moderationStateService;
     }
 
     private final java.util.Map<java.util.UUID, Long> lastMuteFeedback = new java.util.concurrent.ConcurrentHashMap<>();
@@ -31,6 +55,10 @@ public class ModerationPlus extends JavaPlugin {
     private final java.util.Set<java.util.UUID> vanishedPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final java.util.Map<java.util.UUID, me.almana.moderationplus.snapshot.VanishedPlayerSnapshot> vanishedSnapshots = new java.util.concurrent.ConcurrentHashMap<>();
     private final me.almana.moderationplus.service.ModerationService moderationService;
+    private final me.almana.moderationplus.api.chat.ChatChannelRegistry chatChannelRegistry;
+    private final me.almana.moderationplus.api.chat.StaffChatDelivery staffChatDelivery;
+    private final me.almana.moderationplus.core.state.CoreModerationStateService moderationStateService;
+    private final me.almana.moderationplus.core.audit.CoreAuditService auditService;
     private me.almana.moderationplus.web.WebPanelPollingService webPanelPollingService;
 
     @Override
@@ -38,6 +66,8 @@ public class ModerationPlus extends JavaPlugin {
         super.setup();
         storageManager.init();
         configManager.saveConfig();
+        moderationStateService.init();
+        auditService.init();
 
         me.almana.moderationplus.component.FrozenComponent.TYPE = getEntityStoreRegistry().registerComponent(
                 me.almana.moderationplus.component.FrozenComponent.class,

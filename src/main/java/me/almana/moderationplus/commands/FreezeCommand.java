@@ -47,15 +47,23 @@ public class FreezeCommand extends AbstractCommand {
                 issuerName,
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
-        plugin.getModerationService().freeze(targetUuid, targetName, context).thenAccept(success -> {
-            if (success) {
-                ctx.sendMessage(Message.raw("Froze " + targetName).color(java.awt.Color.GREEN));
-            } else {
-                ctx.sendMessage(Message.raw("Failed to freeze " + targetName + " (offline or bypassed).")
-                        .color(java.awt.Color.RED));
-            }
-        });
+        me.almana.moderationplus.api.event.staff.StaffFreezeEvent event = new me.almana.moderationplus.api.event.staff.StaffFreezeEvent(
+                context.issuerUuid(), targetUuid, context.source().name()
+        );
 
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.runAsync(() -> plugin.getEventBus().dispatch(event), com.hypixel.hytale.server.core.HytaleServer.SCHEDULED_EXECUTOR)
+                .thenCompose(v -> {
+                    if (event.isCancelled()) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return plugin.getModerationService().freeze(targetUuid, targetName, context).thenAccept(success -> {
+                        if (success) {
+                            ctx.sendMessage(Message.raw("Froze " + targetName).color(java.awt.Color.GREEN));
+                        } else {
+                            ctx.sendMessage(Message.raw("Failed to freeze " + targetName + " (offline or bypassed).")
+                                    .color(java.awt.Color.RED));
+                        }
+                    });
+                });
     }
 }

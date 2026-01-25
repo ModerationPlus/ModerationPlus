@@ -20,14 +20,15 @@ This document details all permission nodes available in **ModerationPlus**.
 | `moderation.jail` | Allow jailing players | Mod |
 | `moderation.unjail` | Allow releasing players from jail | Mod |
 | `moderation.setjail` | Allow setting the jail location | Admin |
-| `moderation.freeze` | Allow freezing/unfreezing players | Mod |
+| `moderation.freeze` | Allow freezing players | Mod |
 | `moderation.unfreeze` | Allow unfreezing players | Mod |
 | `moderation.vanish` | Allow toggling vanish mode | Admin/Mod |
 | `moderation.vanish.see` | Allow seeing other vanished players | Admin/Mod |
-| `moderation.staffchat` | Allow using and seeing staff chat | Helper |
+| `moderation.staffchat.send` | Allow sending messages in staff chat | Helper |
 | `moderation.chatlockdown` | Allow locking/unlocking global chat | Admin |
 | `moderation.flush` | Allow manually flushing the database | Admin |
 | `moderation.notify` | Receive staff notifications (bans, mutes, etc.) | Helper |
+| `moderation.report.receive` | Receive player reports | Helper |
 
 ## Bypass Permissions
 

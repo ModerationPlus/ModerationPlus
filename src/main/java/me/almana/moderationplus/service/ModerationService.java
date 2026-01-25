@@ -23,6 +23,13 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import com.hypixel.hytale.server.core.util.EventTitleUtil;
+import me.almana.moderationplus.api.event.punishment.PunishmentAppliedEvent;
+import me.almana.moderationplus.api.event.punishment.PunishmentExpiredEvent;
+import me.almana.moderationplus.api.event.punishment.PunishmentPreApplyEvent;
+import me.almana.moderationplus.core.punishment.DefaultPunishmentTypes;
+import java.time.Duration;
+import com.hypixel.hytale.server.core.HytaleServer;
+import me.almana.moderationplus.api.event.ModEvent;
 
 public class ModerationService {
 
@@ -30,6 +37,12 @@ public class ModerationService {
 
     public ModerationService(ModerationPlus plugin) {
         this.plugin = plugin;
+    }
+
+    private void dispatchSync(ModEvent event) {
+        // Enforce dispatch on the server's Scheduled Executor (Main/Scheduler Thread)
+        // Blocks the async worker thread until the event is handled, ensuring thread safety and memory consistency.
+        CompletableFuture.runAsync(() -> plugin.getEventBus().dispatch(event), HytaleServer.SCHEDULED_EXECUTOR).join();
     }
 
     public CompletableFuture<Boolean> ban(UUID targetUuid, String targetName, String reason, ExecutionContext context) {
@@ -52,39 +65,52 @@ public class ModerationService {
 
                 HytaleBanProvider banProvider = plugin.getBanProvider();
                 if (banProvider != null && !banProvider.hasBan(targetUuid)) {
-                    InfiniteBan nativeBan = new InfiniteBan(targetUuid, context.issuerUuid(), Instant.now(), reason);
+                    me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                            UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.BAN, null, reason, false
+                    );
+                    PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                    dispatchSync(preEvent);
+                    if (preEvent.isCancelled()) return false;
+                    apiPunishment = preEvent.getPunishment();
+
+                    InfiniteBan nativeBan = new InfiniteBan(targetUuid, context.issuerUuid(), Instant.now(), apiPunishment.reason());
                     banProvider.modify(bans -> {
                         bans.put(targetUuid, nativeBan);
                         return true;
                     });
-                }
+                    
+                    List<Punishment> activeBans = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(),
+                            "BAN");
+                    if (activeBans.isEmpty()) {
+                        Punishment ban = new Punishment(0, playerData.id(), "BAN", context.issuerUuid().toString(), apiPunishment.reason(),
+                                System.currentTimeMillis(), 0, true, "{}");
+                        plugin.getStorageManager().createPunishment(ban);
+                    }
+                    
+                    dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                List<Punishment> activeBans = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(),
-                        "BAN");
-                if (activeBans.isEmpty()) {
-                    Punishment ban = new Punishment(0, playerData.id(), "BAN", context.issuerUuid().toString(), reason,
-                            System.currentTimeMillis(), 0, true, "{}");
-                    plugin.getStorageManager().createPunishment(ban);
-                }
+                    // Update resolvedName and reason from event if changed
+                    String finalReason = apiPunishment.reason();
+                    plugin.notifyStaff(
+                            Message.raw("[Staff] " + context.issuerName() + " banned " + resolvedName + " (" + finalReason + ")")
+                                    .color(Color.GREEN));
 
-                plugin.notifyStaff(
-                        Message.raw("[Staff] " + context.issuerName() + " banned " + resolvedName + " (" + reason + ")")
-                                .color(Color.GREEN));
-
-                if (isOnline && ref != null && ref.isValid()) {
-                    UUID worldUuid = ref.getWorldUuid();
-                    if (worldUuid != null) {
-                        World world = Universe.get().getWorld(worldUuid);
-                        if (world != null) {
-                            ((Executor) world).execute(() -> {
-                                if (ref.isValid()) {
-                                    ref.getPacketHandler().disconnect("You are permanently banned.\nReason: " + reason);
-                                }
-                            });
+                    if (isOnline && ref != null && ref.isValid()) {
+                        UUID worldUuid = ref.getWorldUuid();
+                        if (worldUuid != null) {
+                             World world = Universe.get().getWorld(worldUuid);
+                             if (world != null) {
+                                  ((Executor) world).execute(() -> {
+                                      if (ref.isValid()) {
+                                          ref.getPacketHandler().disconnect("You are permanently banned.\nReason: " + finalReason);
+                                      }
+                                  });
+                             }
                         }
                     }
+                    return true;
                 }
-                return true;
+                return false;
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -110,22 +136,33 @@ public class ModerationService {
                 String resolvedName = ref.getUsername();
                 PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
 
-                Punishment kick = new Punishment(0, playerData.id(), "KICK", context.issuerUuid().toString(), reason,
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.KICK, null, reason, false
+                );
+                PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                dispatchSync(preEvent);
+                if (preEvent.isCancelled()) return false;
+                apiPunishment = preEvent.getPunishment();
+
+                Punishment kick = new Punishment(0, playerData.id(), "KICK", context.issuerUuid().toString(), apiPunishment.reason(),
                         System.currentTimeMillis(),
                         0, false, "{}");
                 plugin.getStorageManager().createPunishment(kick);
+                
+                dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
                 plugin.notifyStaff(
-                        Message.raw("[Staff] " + context.issuerName() + " kicked " + resolvedName + " (" + reason + ")")
+                        Message.raw("[Staff] " + context.issuerName() + " kicked " + resolvedName + " (" + apiPunishment.reason() + ")")
                                 .color(Color.GREEN));
 
                 UUID worldUuid = ref.getWorldUuid();
                 if (worldUuid != null) {
                     World world = Universe.get().getWorld(worldUuid);
                     if (world != null) {
+                         String finalReason = apiPunishment.reason();
                         ((Executor) world).execute(() -> {
                             if (ref.isValid()) {
-                                ref.getPacketHandler().disconnect("You have been kicked.\nReason: " + reason);
+                                ref.getPacketHandler().disconnect("You have been kicked.\nReason: " + finalReason);
                             }
                         });
                     }
@@ -161,18 +198,28 @@ public class ModerationService {
                     return false;
                 }
 
-                Punishment mute = new Punishment(0, playerData.id(), "MUTE", context.issuerUuid().toString(), reason,
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.MUTE, null, reason, false
+                );
+                PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                dispatchSync(preEvent);
+                if (preEvent.isCancelled()) return false;
+                apiPunishment = preEvent.getPunishment();
+
+                Punishment mute = new Punishment(0, playerData.id(), "MUTE", context.issuerUuid().toString(), apiPunishment.reason(),
                         System.currentTimeMillis(),
                         0, true, "{}");
                 plugin.getStorageManager().createPunishment(mute);
+                
+                dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
                 plugin.notifyStaff(
-                        Message.raw("[Staff] " + context.issuerName() + " muted " + resolvedName + " (" + reason + ")")
+                        Message.raw("[Staff] " + context.issuerName() + " muted " + resolvedName + " (" + apiPunishment.reason() + ")")
                                 .color(Color.GREEN));
 
                 if (ref != null && ref.isValid()) {
                     ref.sendMessage(
-                            Message.raw("You have been permanently muted.\nReason: " + reason).color(Color.RED));
+                            Message.raw("You have been permanently muted.\nReason: " + apiPunishment.reason()).color(Color.RED));
                 }
                 return true;
             } catch (Exception e) {
@@ -204,6 +251,11 @@ public class ModerationService {
                 if (!activeBans.isEmpty()) {
                     for (Punishment p : activeBans) {
                         plugin.getStorageManager().deactivatePunishment(p.id());
+                        
+                        me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                                UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.BAN, null, "Unbanned", false
+                        );
+                        dispatchSync(new PunishmentExpiredEvent(apiPunishment));
                     }
                     dbUnbanned = true;
                 }
@@ -235,6 +287,11 @@ public class ModerationService {
                 int rows = plugin.getStorageManager().deactivatePunishmentsByType(playerData.id(), "MUTE");
 
                 if (rows > 0) {
+                    me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                            UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.MUTE, null, "Unmuted", false
+                    );
+                    plugin.getEventBus().dispatch(new PunishmentExpiredEvent(apiPunishment));
+                    
                     plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " unmuted " + resolvedName)
                             .color(Color.GREEN));
                     if (ref != null && ref.isValid()) {
@@ -272,41 +329,56 @@ public class ModerationService {
 
                 HytaleBanProvider banProvider = plugin.getBanProvider();
                 if (banProvider != null && !banProvider.hasBan(targetUuid)) {
+                    me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                            UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.BAN, Duration.ofMillis(durationMillis), reason, false
+                    );
+                    PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                    plugin.getEventBus().dispatch(preEvent);
+                    if (preEvent.isCancelled()) return false;
+                    apiPunishment = preEvent.getPunishment();
+                    
+                    long finalDuration = apiPunishment.duration() != null ? apiPunishment.duration().toMillis() : durationMillis;
+                    long finalExpiresAt = System.currentTimeMillis() + finalDuration;
+
                     TimedBan nativeBan = new TimedBan(targetUuid, context.issuerUuid(), Instant.now(),
-                            Instant.ofEpochMilli(expiresAt), reason);
+                            Instant.ofEpochMilli(finalExpiresAt), apiPunishment.reason());
                     banProvider.modify(bans -> {
                         bans.put(targetUuid, nativeBan);
                         return true;
                     });
-                }
+                    
+                    List<Punishment> activeBans = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(),
+                             "BAN");
+                    if (activeBans.isEmpty()) {
+                        Punishment ban = new Punishment(0, playerData.id(), "BAN", context.issuerUuid().toString(), apiPunishment.reason(),
+                                System.currentTimeMillis(), finalExpiresAt, true, "{}");
+                        plugin.getStorageManager().createPunishment(ban);
+                    }
+                    
+                    plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
-                List<Punishment> activeBans = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(),
-                        "BAN");
-                if (activeBans.isEmpty()) {
-                    Punishment ban = new Punishment(0, playerData.id(), "BAN", context.issuerUuid().toString(), reason,
-                            System.currentTimeMillis(), expiresAt, true, "{}");
-                    plugin.getStorageManager().createPunishment(ban);
-                }
+                    String durationStr = TimeUtils.formatDuration(finalDuration);
+                    plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " temp-banned " + resolvedName
+                            + " for " + durationStr + " (" + apiPunishment.reason() + ")").color(Color.GREEN));
 
-                String durationStr = TimeUtils.formatDuration(durationMillis);
-                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " temp-banned " + resolvedName
-                        + " for " + durationStr + " (" + reason + ")").color(Color.GREEN));
-
-                if (isOnline && ref != null && ref.isValid()) {
-                    UUID worldUuid = ref.getWorldUuid();
-                    if (worldUuid != null) {
-                        World world = Universe.get().getWorld(worldUuid);
-                        if (world != null) {
-                            ((Executor) world).execute(() -> {
-                                if (ref.isValid()) {
-                                    ref.getPacketHandler()
-                                            .disconnect("You are banned for " + durationStr + ".\nReason: " + reason);
-                                }
-                            });
+                    if (isOnline && ref != null && ref.isValid()) {
+                        UUID worldUuid = ref.getWorldUuid();
+                        if (worldUuid != null) {
+                            World world = Universe.get().getWorld(worldUuid);
+                            if (world != null) {
+                                String finalReason = apiPunishment.reason();
+                                ((Executor) world).execute(() -> {
+                                    if (ref.isValid()) {
+                                        ref.getPacketHandler()
+                                                .disconnect("You are banned for " + durationStr + ".\nReason: " + finalReason);
+                                    }
+                                });
+                            }
                         }
                     }
+                    return true;
                 }
-                return true;
+                return false;
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -335,18 +407,29 @@ public class ModerationService {
                 if (!activeMutes.isEmpty()) {
                     return false;
                 }
+                
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.MUTE, Duration.ofMillis(durationMillis), reason, false
+                );
+                PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                plugin.getEventBus().dispatch(preEvent);
+                if (preEvent.isCancelled()) return false;
+                apiPunishment = preEvent.getPunishment();
 
-                long expiresAt = System.currentTimeMillis() + durationMillis;
-                Punishment mute = new Punishment(0, playerData.id(), "MUTE", context.issuerUuid().toString(), reason,
-                        System.currentTimeMillis(), expiresAt, true, "{}");
+                long finalDuration = apiPunishment.duration() != null ? apiPunishment.duration().toMillis() : durationMillis;
+                long finalExpiresAt = System.currentTimeMillis() + finalDuration;
+                Punishment mute = new Punishment(0, playerData.id(), "MUTE", context.issuerUuid().toString(), apiPunishment.reason(),
+                        System.currentTimeMillis(), finalExpiresAt, true, "{}");
                 plugin.getStorageManager().createPunishment(mute);
+                
+                plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
-                String durationStr = TimeUtils.formatDuration(durationMillis);
+                String durationStr = TimeUtils.formatDuration(finalDuration);
                 plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " temp-muted " + resolvedName
-                        + " for " + durationStr + " (" + reason + ")").color(Color.GREEN));
+                        + " for " + durationStr + " (" + apiPunishment.reason() + ")").color(Color.GREEN));
 
                 if (ref != null && ref.isValid()) {
-                    ref.sendMessage(Message.raw("You have been muted for " + durationStr + ".\nReason: " + reason)
+                    ref.sendMessage(Message.raw("You have been muted for " + durationStr + ".\nReason: " + apiPunishment.reason())
                             .color(Color.RED));
                 }
                 return true;
@@ -368,16 +451,27 @@ public class ModerationService {
                 }
 
                 PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(targetUuid, resolvedName);
-                Punishment warning = new Punishment(0, playerData.id(), "WARN", context.issuerUuid().toString(), reason,
+                
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.WARN, null, reason, false
+                );
+                PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                plugin.getEventBus().dispatch(preEvent);
+                if (preEvent.isCancelled()) return false;
+                apiPunishment = preEvent.getPunishment();
+                
+                Punishment warning = new Punishment(0, playerData.id(), "WARN", context.issuerUuid().toString(), apiPunishment.reason(),
                         System.currentTimeMillis(), 0, true, null);
                 plugin.getStorageManager().createPunishment(warning);
+                
+                plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
                 plugin.notifyStaff(
-                        Message.raw("[Staff] " + context.issuerName() + " warned " + resolvedName + " (" + reason + ")")
+                        Message.raw("[Staff] " + context.issuerName() + " warned " + resolvedName + " (" + apiPunishment.reason() + ")")
                                 .color(Color.GREEN));
 
                 if (ref != null && ref.isValid()) {
-                    ref.sendMessage(Message.raw("You have been warned. Reason: " + reason).color(Color.YELLOW));
+                    ref.sendMessage(Message.raw("You have been warned. Reason: " + apiPunishment.reason()).color(Color.YELLOW));
                 }
                 return true;
             } catch (Exception e) {
@@ -407,7 +501,18 @@ public class ModerationService {
                     return false;
                 }
 
-                long expiresAt = durationMillis > 0 ? System.currentTimeMillis() + durationMillis : 0;
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.JAIL, durationMillis > 0 ? Duration.ofMillis(durationMillis) : null, reason, false
+                );
+                PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                plugin.getEventBus().dispatch(preEvent);
+                if (preEvent.isCancelled()) return false;
+                apiPunishment = preEvent.getPunishment();
+                final me.almana.moderationplus.api.punishment.Punishment finalApiPunishment = apiPunishment;
+
+                long finalDuration = apiPunishment.duration() != null ? apiPunishment.duration().toMillis() : (durationMillis > 0 ? durationMillis : 0);
+                long finalExpiresAt = finalDuration > 0 ? System.currentTimeMillis() + finalDuration : 0;
+                
                 String resolvedName = targetName;
                 PlayerRef ref = Universe.get().getPlayer(targetUuid);
                 boolean isOnline = (ref != null && ref.isValid());
@@ -437,10 +542,10 @@ public class ModerationService {
                                     final String finalLoc = originalLocStr;
                                     CompletableFuture.runAsync(() -> {
                                         try {
-                                            Punishment punishment = new Punishment(0, playerData.id(), "JAIL",
-                                                    context.issuerUuid().toString(), reason,
-                                                    System.currentTimeMillis(), expiresAt, true, finalLoc);
-                                            plugin.getStorageManager().insertPunishment(punishment);
+                                             Punishment punishment = new Punishment(0, playerData.id(), "JAIL",
+                                                     context.issuerUuid().toString(), finalApiPunishment.reason(),
+                                                     System.currentTimeMillis(), finalExpiresAt, true, finalLoc);
+                                             plugin.getStorageManager().insertPunishment(punishment);
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }
@@ -454,13 +559,13 @@ public class ModerationService {
                                     ref.getReference().getStore().addComponent(ref.getReference(),
                                             Teleport.getComponentType(), teleport);
 
-                                    plugin.addJailedPlayer(targetUuid, jailPos, expiresAt);
+                                    plugin.addJailedPlayer(targetUuid, jailPos, finalExpiresAt);
                                     plugin.addFrozenPlayer(targetUuid, jailPos);
 
                                     EventTitleUtil.showEventTitleToPlayer(
                                             ref,
                                             Message.raw("JAILED").color(Color.RED),
-                                            Message.raw("Reason: " + reason + " / Time: " + (durationMillis > 0 ? TimeUtils.formatDuration(durationMillis) : "Permanent")),
+                                            Message.raw("Reason: " + finalApiPunishment.reason() + " / Time: " + (finalDuration > 0 ? TimeUtils.formatDuration(finalDuration) : "Permanent")),
                                             true);
                                 }
                             });
@@ -468,12 +573,14 @@ public class ModerationService {
                     }
                 } else {
                     Punishment punishment = new Punishment(0, playerData.id(), "JAIL", context.issuerUuid().toString(),
-                            reason,
-                            System.currentTimeMillis(), expiresAt, true, null);
+                            finalApiPunishment.reason(),
+                            System.currentTimeMillis(), finalExpiresAt, true, null);
                     plugin.getStorageManager().insertPunishment(punishment);
                 }
+                
+                plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
-                String durationStr = durationMillis > 0 ? TimeUtils.formatDuration(durationMillis) : "permanent";
+                String durationStr = finalDuration > 0 ? TimeUtils.formatDuration(finalDuration) : "permanent";
                 plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " jailed " + resolvedName + " (" + durationStr + ").")
                         .color(Color.RED));
                 return true;
@@ -506,6 +613,11 @@ public class ModerationService {
                 int deactivated = plugin.getStorageManager().deactivatePunishmentsByType(playerData.id(), "JAIL");
                 if (deactivated == 0)
                     return false;
+                    
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.JAIL, null, "Unjailed", false
+                );
+                dispatchSync(new PunishmentExpiredEvent(apiPunishment));
 
                 plugin.removeJailedPlayer(targetUuid);
                 plugin.removeFrozenPlayer(targetUuid);
@@ -571,6 +683,15 @@ public class ModerationService {
 
                 String resolvedName = ref.getUsername();
 
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.FREEZE, null, "Frozen", false
+                );
+                PunishmentPreApplyEvent preEvent = new PunishmentPreApplyEvent(apiPunishment);
+                dispatchSync(preEvent);
+                if (preEvent.isCancelled()) return false;
+                
+                // Freeze doesn't store permanent record in DB in original code, so just notify staff and apply effect
+                
                 UUID worldUuid = ref.getWorldUuid();
                 if (worldUuid != null) {
                     World world = Universe.get().getWorld(worldUuid);
@@ -596,6 +717,8 @@ public class ModerationService {
                         });
                     }
                 }
+                
+                dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
                 plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " froze " + resolvedName + ".")
                         .color(Color.YELLOW));
@@ -610,6 +733,11 @@ public class ModerationService {
     public CompletableFuture<Boolean> unfreeze(UUID targetUuid, String targetName, ExecutionContext context) {
         return plugin.removeFrozenPlayer(targetUuid).thenApply(wasFrozen -> {
             if (wasFrozen) {
+                me.almana.moderationplus.api.punishment.Punishment apiPunishment = new me.almana.moderationplus.api.punishment.Punishment(
+                        UUID.randomUUID(), targetUuid, context.issuerUuid(), DefaultPunishmentTypes.FREEZE, null, "Unfrozen", false
+                );
+                dispatchSync(new PunishmentExpiredEvent(apiPunishment));
+                
                 plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " unfroze " + targetName + ".")
                         .color(Color.GREEN));
                 
