@@ -21,9 +21,11 @@ import java.util.List;
 
 public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
 
+    private final me.almana.moderationplus.ModerationPlus plugin;
     private final Query<EntityStore> query;
 
-    public PlayerFreezeSystem() {
+    public PlayerFreezeSystem(me.almana.moderationplus.ModerationPlus plugin) {
+        this.plugin = plugin;
         this.query = Query.and(
                 Player.getComponentType(),
                 PlayerInput.getComponentType(),
@@ -54,10 +56,23 @@ public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
         if (playerInput == null || transform == null)
             return;
 
+        if (jailed != null && jailed.getExpiresAt() > 0 && System.currentTimeMillis() > jailed.getExpiresAt()) {
+             commandBuffer.removeComponent(archetypeChunk.getReferenceTo(index), JailedComponent.getComponentType());
+             if (frozen != null) {
+                 commandBuffer.removeComponent(archetypeChunk.getReferenceTo(index), FrozenComponent.getComponentType());
+             }
+             
+             Player player = archetypeChunk.getComponent(index, Player.getComponentType());
+             if (player != null) {
+                 me.almana.moderationplus.service.ExecutionContext ctx = me.almana.moderationplus.service.ExecutionContext.console();
+                 plugin.getModerationService().unjail(player.getUuid(), player.getDisplayName(), ctx);
+             }
+             return;
+        }
+
         if (frozen != null) {
             handleFreeze(frozen, playerInput, transform, archetypeChunk, index, commandBuffer);
         } else {
-
             handleJail(jailed, transform, archetypeChunk, index, commandBuffer);
         }
     }
@@ -92,11 +107,14 @@ public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
     private void handleJail(JailedComponent jailed, TransformComponent transform, ArchetypeChunk<EntityStore> chunk,
             int index, CommandBuffer<EntityStore> commandBuffer) {
 
+        if (jailed.getExpiresAt() > 0 && System.currentTimeMillis() > jailed.getExpiresAt()) {
+            commandBuffer.removeComponent(chunk.getReferenceTo(index), JailedComponent.getComponentType());
+            return;
+        }
+
         Vector3d currentPos = transform.getPosition();
         Vector3d origin = jailed.getOrigin();
         double radius = jailed.getRadius();
-
-
 
         double distSq = currentPos.distanceSquaredTo(origin);
         if (distSq > (radius * radius)) {

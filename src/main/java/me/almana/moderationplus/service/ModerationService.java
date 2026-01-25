@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import com.hypixel.hytale.server.core.util.EventTitleUtil;
 
 public class ModerationService {
 
@@ -387,6 +388,14 @@ public class ModerationService {
     }
 
     public CompletableFuture<Boolean> jail(UUID targetUuid, String targetName, ExecutionContext context) {
+        return jail(targetUuid, targetName, 0, "Jailed by staff", context);
+    }
+
+    public CompletableFuture<Boolean> jail(UUID targetUuid, String targetName, long durationMillis, ExecutionContext context) {
+        return jail(targetUuid, targetName, durationMillis, "Jailed by staff", context);
+    }
+
+    public CompletableFuture<Boolean> jail(UUID targetUuid, String targetName, long durationMillis, String reason, ExecutionContext context) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 if (!plugin.getConfigManager().hasJailLocation()) {
@@ -398,6 +407,7 @@ public class ModerationService {
                     return false;
                 }
 
+                long expiresAt = durationMillis > 0 ? System.currentTimeMillis() + durationMillis : 0;
                 String resolvedName = targetName;
                 PlayerRef ref = Universe.get().getPlayer(targetUuid);
                 boolean isOnline = (ref != null && ref.isValid());
@@ -428,8 +438,8 @@ public class ModerationService {
                                     CompletableFuture.runAsync(() -> {
                                         try {
                                             Punishment punishment = new Punishment(0, playerData.id(), "JAIL",
-                                                    context.issuerUuid().toString(), "Jailed by staff",
-                                                    System.currentTimeMillis(), 0, true, finalLoc);
+                                                    context.issuerUuid().toString(), reason,
+                                                    System.currentTimeMillis(), expiresAt, true, finalLoc);
                                             plugin.getStorageManager().insertPunishment(punishment);
                                         } catch (Exception e) {
                                             e.printStackTrace();
@@ -444,20 +454,27 @@ public class ModerationService {
                                     ref.getReference().getStore().addComponent(ref.getReference(),
                                             Teleport.getComponentType(), teleport);
 
-                                    plugin.addJailedPlayer(targetUuid, jailPos);
+                                    plugin.addJailedPlayer(targetUuid, jailPos, expiresAt);
                                     plugin.addFrozenPlayer(targetUuid, jailPos);
+
+                                    EventTitleUtil.showEventTitleToPlayer(
+                                            ref,
+                                            Message.raw("JAILED").color(Color.RED),
+                                            Message.raw("Reason: " + reason + " / Time: " + (durationMillis > 0 ? TimeUtils.formatDuration(durationMillis) : "Permanent")),
+                                            true);
                                 }
                             });
                         }
                     }
                 } else {
                     Punishment punishment = new Punishment(0, playerData.id(), "JAIL", context.issuerUuid().toString(),
-                            "Jailed by staff",
-                            System.currentTimeMillis(), 0, true, null);
+                            reason,
+                            System.currentTimeMillis(), expiresAt, true, null);
                     plugin.getStorageManager().insertPunishment(punishment);
                 }
 
-                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " jailed " + resolvedName + ".")
+                String durationStr = durationMillis > 0 ? TimeUtils.formatDuration(durationMillis) : "permanent";
+                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " jailed " + resolvedName + " (" + durationStr + ").")
                         .color(Color.RED));
                 return true;
             } catch (Exception e) {
@@ -515,6 +532,12 @@ public class ModerationService {
                                             Teleport teleport = new Teleport(targetPos, targetRot);
                                             ref.getReference().getStore().addComponent(ref.getReference(),
                                                     Teleport.getComponentType(), teleport);
+
+                                            EventTitleUtil.showEventTitleToPlayer(
+                                                    ref,
+                                                    Message.raw("UNJAILED").color(Color.GREEN),
+                                                    Message.raw("You are free to go."),
+                                                    true);
                                         }
                                     });
                                 }
@@ -563,6 +586,12 @@ public class ModerationService {
                                 }
                                 ref.sendMessage(
                                         Message.raw("You have been frozen by staff. Do not log out.").color(Color.RED));
+                                
+                                EventTitleUtil.showEventTitleToPlayer(
+                                        ref,
+                                        Message.raw("FROZEN").color(Color.RED),
+                                        Message.raw("Do not log out."),
+                                        true);
                             }
                         });
                     }
@@ -583,6 +612,22 @@ public class ModerationService {
             if (wasFrozen) {
                 plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " unfroze " + targetName + ".")
                         .color(Color.GREEN));
+                
+                PlayerRef ref = Universe.get().getPlayer(targetUuid);
+                if (ref != null && ref.isValid() && ref.getWorldUuid() != null) {
+                    World world = Universe.get().getWorld(ref.getWorldUuid());
+                    if (world != null) {
+                         ((Executor) world).execute(() -> {
+                             if (ref.isValid()) {
+                                 EventTitleUtil.showEventTitleToPlayer(
+                                        ref,
+                                        Message.raw("UNFROZEN").color(Color.GREEN),
+                                        Message.raw("You have been unfrozen."),
+                                        true);
+                             }
+                         });
+                    }
+                }
                 return true;
             }
             return false;
@@ -620,5 +665,85 @@ public class ModerationService {
                 return true; // Vanished
             }
         });
+    }
+    public java.util.Optional<Punishment> getActiveMute(UUID uuid, String username) {
+        try {
+            PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(uuid, username);
+            List<Punishment> mutes = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(), "MUTE");
+            for (Punishment p : mutes) {
+                if (p.expiresAt() > 0 && System.currentTimeMillis() > p.expiresAt()) {
+                    plugin.getStorageManager().deactivatePunishment(p.id());
+                    plugin.notifyStaff(Message.raw("[Staff] " + username + " auto-unmuted (expired)").color(Color.GREEN));
+                    continue;
+                }
+                return java.util.Optional.of(p);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return java.util.Optional.empty();
+    }
+
+    public void handleJoinPunishmentChecks(UUID uuid, String username) {
+        try {
+            // Check Mutes (Trigger auto-expire)
+            getActiveMute(uuid, username);
+
+            // Check Bans (Trigger auto-expire)
+            PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(uuid, username);
+            List<Punishment> bans = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(), "BAN");
+            for (Punishment p : bans) {
+                if (p.expiresAt() > 0 && System.currentTimeMillis() > p.expiresAt()) {
+                    plugin.getStorageManager().deactivatePunishment(p.id());
+                    plugin.notifyStaff(Message.raw("[Staff] " + username + " auto-unbanned (expired)").color(Color.GREEN));
+                }
+            }
+
+            // Check Jails
+            List<Punishment> jails = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(), "JAIL");
+            Punishment activeJail = jails.isEmpty() ? null : jails.get(0);
+            
+            if (activeJail != null) {
+                if (activeJail.expiresAt() > 0 && System.currentTimeMillis() > activeJail.expiresAt()) {
+                     plugin.getStorageManager().deactivatePunishment(activeJail.id());
+                     // Trigger unjail logic (restore location)
+                     // Since we are in join handler, we can assume player is here or connecting.
+                     // But unjail is ASYNC. We should call unjail.
+                     ExecutionContext ctx = ExecutionContext.console();
+                     unjail(uuid, username, ctx); 
+                     return;
+                }
+
+
+                if (plugin.getConfigManager().hasJailLocation()) {
+                    // Delay check to allow player entity to spawn
+                    com.hypixel.hytale.server.core.HytaleServer.SCHEDULED_EXECUTOR.schedule(() -> {
+                        PlayerRef ref = Universe.get().getPlayer(username, com.hypixel.hytale.server.core.NameMatching.EXACT);
+                        if (ref != null && ref.isValid()) {
+                            double[] jailLoc = plugin.getConfigManager().getJailLocation();
+                            Vector3d jailPos = new Vector3d(jailLoc[0], jailLoc[1], jailLoc[2]);
+                            Vector3f jailRot = new Vector3f(0, 0, 0);
+
+                            long expiresAt = activeJail.expiresAt();
+                            plugin.addJailedPlayer(uuid, jailPos, expiresAt);
+                            plugin.addFrozenPlayer(uuid, jailPos);
+
+                            Teleport teleport = new Teleport(jailPos, jailRot);
+                            ref.getReference().getStore().addComponent(ref.getReference(), Teleport.getComponentType(), teleport);
+
+                            EventTitleUtil.showEventTitleToPlayer(
+                                    ref,
+                                    Message.raw("JAILED").color(Color.RED),
+                                    Message.raw("Reason: " + activeJail.reason() + " / Time: " + (expiresAt > 0 ? TimeUtils.formatDuration(expiresAt - System.currentTimeMillis()) : "Permanent")),
+                                    true);
+
+                            plugin.notifyStaff(Message.raw("[Staff] Jailed player " + username + " joined the server.").color(Color.RED));
+                        }
+                    }, 500, java.util.concurrent.TimeUnit.MILLISECONDS);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

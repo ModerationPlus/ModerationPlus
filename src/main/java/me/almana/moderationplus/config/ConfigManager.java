@@ -181,4 +181,26 @@ public class ConfigManager {
         }
         return webPanel.get("url").getAsString();
     }
+
+    public String getWebPanelPollUrl() {
+        if (!config.has("web_panel")) {
+            return null;
+        }
+        JsonObject webPanel = config.getAsJsonObject("web_panel");
+        if (!webPanel.has("poll_url")) {
+            return null;
+        }
+        return webPanel.get("poll_url").getAsString();
+    }
+
+    public String getWebPanelClaimUrl() {
+        if (!config.has("web_panel")) {
+            return null;
+        }
+        JsonObject webPanel = config.getAsJsonObject("web_panel");
+        if (!webPanel.has("claim_url")) {
+            return null;
+        }
+        return webPanel.get("claim_url").getAsString();
+    }
 }

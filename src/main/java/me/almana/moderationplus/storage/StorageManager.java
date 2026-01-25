@@ -558,7 +558,7 @@ public class StorageManager {
 
     private void applyMigration7() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute("CREATE TABLE web_commands_log (" +
+            stmt.execute("CREATE TABLE IF NOT EXISTS web_commands_log (" +
                     "id TEXT PRIMARY KEY, " +
                     "processed_at INTEGER NOT NULL" +
                     ");");

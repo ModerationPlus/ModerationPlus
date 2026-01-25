@@ -22,6 +22,10 @@ public class WebAcknowledgementService {
     }
 
     public void sendAck(String commandId, boolean success, String message) {
+        attemptAck(commandId, success, message, 0);
+    }
+
+    private void attemptAck(String commandId, boolean success, String message, int retryCount) {
         // A2: Runtime Guard
         if (!plugin.getConfigManager().isWebPanelEnabled()) {
             return;
@@ -55,16 +59,41 @@ public class WebAcknowledgementService {
 
                 httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                         .thenAccept(response -> {
-                            if (response.statusCode() != 200 && response.statusCode() != 201) {
-                                logger.at(Level.WARNING).log("Failed to send Ack for command %s (Status: %d)",
-                                        commandId,
-                                        response.statusCode());
+                            int status = response.statusCode();
+                            if (status >= 200 && status < 300) {
+                                // Success - No op
+                            } else if (status >= 400 && status < 500) {
+                                // Terminal failure (Auth, Bad Request) - Do NOT retry
+                                logger.at(Level.WARNING).log("Terminal ACK failure for %s (Status: %d). Not retrying.",
+                                        commandId, status);
+                            } else {
+                                // Transient failure (5xx) - Retry
+                                scheduleRetry(commandId, success, message, retryCount, "Server Error " + status);
                             }
+                        })
+                        .exceptionally(ex -> {
+                            // Network failure - Retry
+                            scheduleRetry(commandId, success, message, retryCount, "Exception: " + ex.getMessage());
+                            return null;
                         });
 
             } catch (Exception e) {
-                logger.at(Level.SEVERE).withCause(e).log("Error sending Ack for command %s", commandId);
+                scheduleRetry(commandId, success, message, retryCount, "Setup Exception: " + e.getMessage());
             }
         });
+    }
+
+    private void scheduleRetry(String commandId, boolean success, String message, int currentRetries, String reason) {
+        if (currentRetries >= 3) {
+            logger.at(Level.SEVERE).log("Failed to send ACK for %s after %d attempts. Last error: %s",
+                    commandId, currentRetries + 1, reason);
+            return;
+        }
+
+        long delay = 3L;
+
+        com.hypixel.hytale.server.core.HytaleServer.SCHEDULED_EXECUTOR.schedule(() -> {
+            attemptAck(commandId, success, message, currentRetries + 1);
+        }, delay, java.util.concurrent.TimeUnit.SECONDS);
     }
 }

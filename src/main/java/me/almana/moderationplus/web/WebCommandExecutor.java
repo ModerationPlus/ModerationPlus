@@ -36,8 +36,12 @@ public class WebCommandExecutor {
     }
 
     private void processIntent(WebCommandIntent intent) {
-        if (intent.id() == null || plugin.getStorageManager().hasWebCommandProcessed(intent.id())) {
+        if (intent.id() == null) {
+            return;
+        }
 
+        if (plugin.getStorageManager().hasWebCommandProcessed(intent.id())) {
+            ackService.sendAck(intent.id(), true, "Duplicate: Already processed");
             return;
         }
 
@@ -64,7 +68,7 @@ public class WebCommandExecutor {
                 case "WARN" -> service.warn(intent.targetUuid(), intent.targetName(), intent.reason(), context);
                 case "UNBAN" -> service.unban(intent.targetUuid(), intent.targetName(), context);
                 case "UNMUTE" -> service.unmute(intent.targetUuid(), intent.targetName(), context);
-                case "JAIL" -> service.jail(intent.targetUuid(), intent.targetName(), context);
+                case "JAIL" -> service.jail(intent.targetUuid(), intent.targetName(), 0, intent.reason(), context);
                 case "UNJAIL" -> service.unjail(intent.targetUuid(), intent.targetName(), context);
                 case "FREEZE" -> service.freeze(intent.targetUuid(), intent.targetName(), context);
                 case "UNFREEZE" -> service.unfreeze(intent.targetUuid(), intent.targetName(), context);

@@ -17,10 +17,12 @@ public class JailedComponent implements Component<EntityStore> {
 
     private final Vector3d origin = new Vector3d();
     private double radius;
+    private long expiresAt;
 
-    public JailedComponent(Vector3d origin, double radius) {
+    public JailedComponent(Vector3d origin, double radius, long expiresAt) {
         this.origin.assign(origin);
         this.radius = radius;
+        this.expiresAt = expiresAt;
     }
 
     public JailedComponent() {
@@ -29,6 +31,7 @@ public class JailedComponent implements Component<EntityStore> {
     public JailedComponent(JailedComponent other) {
         this.origin.assign(other.origin);
         this.radius = other.radius;
+        this.expiresAt = other.expiresAt;
     }
 
     public Vector3d getOrigin() {
@@ -37,6 +40,10 @@ public class JailedComponent implements Component<EntityStore> {
 
     public double getRadius() {
         return radius;
+    }
+
+    public long getExpiresAt() {
+        return expiresAt;
     }
 
     @Nonnull
