@@ -89,7 +89,7 @@ Set the jail location to your current position.
 
 ### Vanish
 Toggle invisibility mode. While vanished, you are hidden from other players, and your chat messages are redirected to staff notifications.
-- **Syntax:** `/vanish`
+- **Syntax:** `/staffvanish`
 - **Permission:** `moderation.vanish`
 - **Example:** `/vanish`
 
