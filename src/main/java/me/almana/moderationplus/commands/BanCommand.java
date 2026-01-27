@@ -61,7 +61,12 @@ public class BanCommand extends AbstractCommand {
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
 
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Player '" + targetName + "' not found in database.").color(Color.RED));
+            String msg = plugin.getLanguageManager().translate(
+                "command.ban.player_not_found",
+                plugin.getLanguageManager().getDefaultLocale(),
+                java.util.Map.of("player", targetName)
+            );
+            ctx.sendMessage(Message.raw(msg).color(Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -71,11 +76,21 @@ public class BanCommand extends AbstractCommand {
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().ban(targetUuid, targetName, reason, context).thenAccept(success -> {
+            String locale = plugin.getLanguageManager().getDefaultLocale();
             if (success) {
-                ctx.sendMessage(Message.raw("Banned " + targetName).color(Color.GREEN));
+                String msg = plugin.getLanguageManager().translate(
+                    "command.ban.success",
+                    locale,
+                    java.util.Map.of("player", targetName)
+                );
+                ctx.sendMessage(Message.raw(msg).color(Color.GREEN));
             } else {
-                ctx.sendMessage(Message.raw("Failed to ban " + targetName + " (likely bypassed or already banned).")
-                        .color(Color.RED));
+                String msg = plugin.getLanguageManager().translate(
+                    "command.ban.failed",
+                    locale,
+                    java.util.Map.of("player", targetName)
+                );
+                ctx.sendMessage(Message.raw(msg).color(Color.RED));
             }
         });
 

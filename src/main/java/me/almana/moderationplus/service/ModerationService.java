@@ -89,11 +89,15 @@ public class ModerationService {
                     
                     dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                    // Update resolvedName and reason from event if changed
+                    // Staff notification
                     String finalReason = apiPunishment.reason();
-                    plugin.notifyStaff(
-                            Message.raw("[Staff] " + context.issuerName() + " banned " + resolvedName + " (" + finalReason + ")")
-                                    .color(Color.GREEN));
+                    String locale = plugin.getLanguageManager().getDefaultLocale();
+                    String staffMsg = plugin.getLanguageManager().translate(
+                        "staff.ban.notify",
+                        locale,
+                        java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", finalReason)
+                    );
+                    plugin.notifyStaff(Message.raw(staffMsg).color(Color.GREEN));
 
                     if (isOnline && ref != null && ref.isValid()) {
                         UUID worldUuid = ref.getWorldUuid();
@@ -102,7 +106,7 @@ public class ModerationService {
                              if (world != null) {
                                   ((Executor) world).execute(() -> {
                                       if (ref.isValid()) {
-                                          ref.getPacketHandler().disconnect("You are permanently banned.\nReason: " + finalReason);
+                                          ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.banned.permanent", ref.getUuid(), java.util.Map.of("reason", finalReason)));
                                       }
                                   });
                              }
@@ -151,9 +155,7 @@ public class ModerationService {
                 
                 dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(
-                        Message.raw("[Staff] " + context.issuerName() + " kicked " + resolvedName + " (" + apiPunishment.reason() + ")")
-                                .color(Color.GREEN));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.kick.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
 
                 UUID worldUuid = ref.getWorldUuid();
                 if (worldUuid != null) {
@@ -162,7 +164,7 @@ public class ModerationService {
                          String finalReason = apiPunishment.reason();
                         ((Executor) world).execute(() -> {
                             if (ref.isValid()) {
-                                ref.getPacketHandler().disconnect("You have been kicked.\nReason: " + finalReason);
+                                ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.kicked", ref.getUuid(), java.util.Map.of("reason", finalReason)));
                             }
                         });
                     }
@@ -213,13 +215,11 @@ public class ModerationService {
                 
                 dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(
-                        Message.raw("[Staff] " + context.issuerName() + " muted " + resolvedName + " (" + apiPunishment.reason() + ")")
-                                .color(Color.GREEN));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.mute.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
 
                 if (ref != null && ref.isValid()) {
                     ref.sendMessage(
-                            Message.raw("You have been permanently muted.\nReason: " + apiPunishment.reason()).color(Color.RED));
+                            plugin.getLanguageManager().translateToMessage("player.muted.permanent", ref.getUuid(), java.util.Map.of("reason", apiPunishment.reason())));
                 }
                 return true;
             } catch (Exception e) {
@@ -261,8 +261,7 @@ public class ModerationService {
                 }
 
                 if (nativeUnbanned || dbUnbanned) {
-                    plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " unbanned " + resolvedName)
-                            .color(Color.GREEN));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unban.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
                     return true;
                 }
                 return false;
@@ -292,10 +291,9 @@ public class ModerationService {
                     );
                     plugin.getEventBus().dispatch(new PunishmentExpiredEvent(apiPunishment));
                     
-                    plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " unmuted " + resolvedName)
-                            .color(Color.GREEN));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unmute.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
                     if (ref != null && ref.isValid()) {
-                        ref.sendMessage(Message.raw("You have been unmuted.").color(Color.GREEN));
+                        ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.unmuted", ref.getUuid()));
                     }
                     return true;
                 }
@@ -358,8 +356,7 @@ public class ModerationService {
                     plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
                     String durationStr = TimeUtils.formatDuration(finalDuration);
-                    plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " temp-banned " + resolvedName
-                            + " for " + durationStr + " (" + apiPunishment.reason() + ")").color(Color.GREEN));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.tempban.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr, "reason", apiPunishment.reason())));
 
                     if (isOnline && ref != null && ref.isValid()) {
                         UUID worldUuid = ref.getWorldUuid();
@@ -369,8 +366,7 @@ public class ModerationService {
                                 String finalReason = apiPunishment.reason();
                                 ((Executor) world).execute(() -> {
                                     if (ref.isValid()) {
-                                        ref.getPacketHandler()
-                                                .disconnect("You are banned for " + durationStr + ".\nReason: " + finalReason);
+                                        ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.banned.temporary", ref.getUuid(), java.util.Map.of("duration", durationStr, "reason", finalReason)));
                                     }
                                 });
                             }
@@ -425,12 +421,10 @@ public class ModerationService {
                 plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
                 String durationStr = TimeUtils.formatDuration(finalDuration);
-                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " temp-muted " + resolvedName
-                        + " for " + durationStr + " (" + apiPunishment.reason() + ")").color(Color.GREEN));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.tempmute.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr, "reason", apiPunishment.reason())));
 
                 if (ref != null && ref.isValid()) {
-                    ref.sendMessage(Message.raw("You have been muted for " + durationStr + ".\nReason: " + apiPunishment.reason())
-                            .color(Color.RED));
+                    ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.muted.temporary", ref.getUuid(), java.util.Map.of("duration", durationStr, "reason", apiPunishment.reason())));
                 }
                 return true;
             } catch (Exception e) {
@@ -466,12 +460,10 @@ public class ModerationService {
                 
                 plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(
-                        Message.raw("[Staff] " + context.issuerName() + " warned " + resolvedName + " (" + apiPunishment.reason() + ")")
-                                .color(Color.GREEN));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.warn.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
 
                 if (ref != null && ref.isValid()) {
-                    ref.sendMessage(Message.raw("You have been warned. Reason: " + apiPunishment.reason()).color(Color.YELLOW));
+                    ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.warned", ref.getUuid(), java.util.Map.of("reason", apiPunishment.reason())));
                 }
                 return true;
             } catch (Exception e) {
@@ -564,8 +556,8 @@ public class ModerationService {
 
                                     EventTitleUtil.showEventTitleToPlayer(
                                             ref,
-                                            Message.raw("JAILED").color(Color.RED),
-                                            Message.raw("Reason: " + finalApiPunishment.reason() + " / Time: " + (finalDuration > 0 ? TimeUtils.formatDuration(finalDuration) : "Permanent")),
+                                            plugin.getLanguageManager().translateToMessage("player.jail.entry", ref.getUuid()),
+                                            plugin.getLanguageManager().translateToMessage("player.warned", ref.getUuid(), java.util.Map.of("reason", finalApiPunishment.reason())), 
                                             true);
                                 }
                             });
@@ -581,8 +573,11 @@ public class ModerationService {
                 plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
                 String durationStr = finalDuration > 0 ? TimeUtils.formatDuration(finalDuration) : "permanent";
-                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " jailed " + resolvedName + " (" + durationStr + ").")
-                        .color(Color.RED));
+                if (finalDuration > 0) {
+                     plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.jail.notify_duration", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr)));
+                } else {
+                     plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.jail.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
+                }
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -647,8 +642,8 @@ public class ModerationService {
 
                                             EventTitleUtil.showEventTitleToPlayer(
                                                     ref,
-                                                    Message.raw("UNJAILED").color(Color.GREEN),
-                                                    Message.raw("You are free to go."),
+                                                    plugin.getLanguageManager().translateToMessage("player.jail.exit", ref.getUuid()),
+                                                    Message.raw(""),
                                                     true);
                                         }
                                     });
@@ -659,8 +654,7 @@ public class ModerationService {
                     }
                 }
 
-                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " unjailed " + resolvedName + ".")
-                        .color(Color.GREEN));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unjail.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -705,13 +699,12 @@ public class ModerationService {
                                 } else {
                                     plugin.addFrozenPlayer(targetUuid, new Vector3d(0, 100, 0));
                                 }
-                                ref.sendMessage(
-                                        Message.raw("You have been frozen by staff. Do not log out.").color(Color.RED));
+                                ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.frozen", ref.getUuid()));
                                 
                                 EventTitleUtil.showEventTitleToPlayer(
                                         ref,
-                                        Message.raw("FROZEN").color(Color.RED),
-                                        Message.raw("Do not log out."),
+                                        plugin.getLanguageManager().translateToMessage("player.frozen", ref.getUuid()),
+                                        Message.raw(""),
                                         true);
                             }
                         });
@@ -720,8 +713,7 @@ public class ModerationService {
                 
                 dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " froze " + resolvedName + ".")
-                        .color(Color.YELLOW));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.freeze.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -738,8 +730,7 @@ public class ModerationService {
                 );
                 dispatchSync(new PunishmentExpiredEvent(apiPunishment));
                 
-                plugin.notifyStaff(Message.raw("[Staff] " + context.issuerName() + " unfroze " + targetName + ".")
-                        .color(Color.GREEN));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unfreeze.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", targetName)));
                 
                 PlayerRef ref = Universe.get().getPlayer(targetUuid);
                 if (ref != null && ref.isValid() && ref.getWorldUuid() != null) {
@@ -749,8 +740,8 @@ public class ModerationService {
                              if (ref.isValid()) {
                                  EventTitleUtil.showEventTitleToPlayer(
                                         ref,
-                                        Message.raw("UNFROZEN").color(Color.GREEN),
-                                        Message.raw("You have been unfrozen."),
+                                        plugin.getLanguageManager().translateToMessage("player.unfrozen", ref.getUuid()),
+                                        Message.raw(""),
                                         true);
                              }
                          });
@@ -771,7 +762,7 @@ public class ModerationService {
                         observer.getHiddenPlayersManager().showPlayer(playerUuid);
                     }
                 });
-                plugin.notifyStaff(Message.raw("[Staff] " + playerName + " is no longer vanished.").color(Color.GRAY));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.vanish.disabled", null, java.util.Map.of("player", playerName)));
                 return false; // Not vanished
             } else {
                 plugin.addVanishedPlayer(playerUuid);
@@ -789,7 +780,7 @@ public class ModerationService {
                         }
                     }
                 });
-                plugin.notifyStaff(Message.raw("[Staff] " + playerName + " vanished.").color(Color.GRAY));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.vanish.enabled", null, java.util.Map.of("player", playerName)));
                 return true; // Vanished
             }
         });
@@ -801,7 +792,7 @@ public class ModerationService {
             for (Punishment p : mutes) {
                 if (p.expiresAt() > 0 && System.currentTimeMillis() > p.expiresAt()) {
                     plugin.getStorageManager().deactivatePunishment(p.id());
-                    plugin.notifyStaff(Message.raw("[Staff] " + username + " auto-unmuted (expired)").color(Color.GREEN));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unmute.notify", null, java.util.Map.of("issuer", "System", "target", username)));
                     continue;
                 }
                 return java.util.Optional.of(p);
@@ -823,7 +814,7 @@ public class ModerationService {
             for (Punishment p : bans) {
                 if (p.expiresAt() > 0 && System.currentTimeMillis() > p.expiresAt()) {
                     plugin.getStorageManager().deactivatePunishment(p.id());
-                    plugin.notifyStaff(Message.raw("[Staff] " + username + " auto-unbanned (expired)").color(Color.GREEN));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unban.notify", null, java.util.Map.of("issuer", "System", "target", username)));
                 }
             }
 
@@ -861,11 +852,11 @@ public class ModerationService {
 
                             EventTitleUtil.showEventTitleToPlayer(
                                     ref,
-                                    Message.raw("JAILED").color(Color.RED),
-                                    Message.raw("Reason: " + activeJail.reason() + " / Time: " + (expiresAt > 0 ? TimeUtils.formatDuration(expiresAt - System.currentTimeMillis()) : "Permanent")),
+                                    plugin.getLanguageManager().translateToMessage("player.jail.entry", ref.getUuid()),
+                                    plugin.getLanguageManager().translateToMessage("player.warned", ref.getUuid(), java.util.Map.of("reason", activeJail.reason())),
                                     true);
 
-                            plugin.notifyStaff(Message.raw("[Staff] Jailed player " + username + " joined the server.").color(Color.RED));
+                            plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.jail.join_notify", null, java.util.Map.of("player", username)));
                         }
                     }, 500, java.util.concurrent.TimeUnit.MILLISECONDS);
                 }

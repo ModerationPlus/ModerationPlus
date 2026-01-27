@@ -34,7 +34,11 @@ public class UnjailCommand extends AbstractCommand {
 
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.unjail.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -55,10 +59,17 @@ public class UnjailCommand extends AbstractCommand {
                     }
                     return plugin.getModerationService().unjail(targetUuid, targetName, context).thenAccept(success -> {
                         if (success) {
-                            ctx.sendMessage(Message.raw("Unjailed " + targetName).color(Color.GREEN));
+                            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                                "command.unjail.success",
+                                (sender instanceof Player) ? sender.getUuid() : null,
+                                java.util.Map.of("player", targetName)
+                            ));
                         } else {
-                            ctx.sendMessage(Message.raw("Failed to unjail " + targetName + " (maybe not imprisoned?).")
-                                    .color(Color.RED));
+                            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                                "command.unjail.failed",
+                                (sender instanceof Player) ? sender.getUuid() : null,
+                                java.util.Map.of("player", targetName)
+                            ));
                         }
                     });
                 });

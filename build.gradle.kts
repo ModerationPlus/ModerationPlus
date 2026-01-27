@@ -1,11 +1,6 @@
-/**
- * Build script for the Basic Hytale Plugin Template.
- * This script handles dependencies, compilation, shadowing, and deployment.
- */
 plugins {
     id("java-library")
     id("com.gradleup.shadow") version "9.3.1"
-    // id("run-hytale") // Commented out as likely not resolved without extra config
 }
 
 val pluginGroup: String by project
@@ -21,8 +16,15 @@ description = pluginDescription
 val javaVersion = 21
 
 repositories {
-    mavenLocal()
     mavenCentral()
+    maven {
+        name = "hytale-release"
+        url = uri("https://maven.hytale.com/release")
+    }
+    maven {
+        name = "hytale-pre-release"
+        url = uri("https://maven.hytale.com/pre-release")
+    }
 }
 
 sourceSets {
@@ -33,8 +35,7 @@ sourceSets {
 }
 
 dependencies {
-    // Hytale Server API (provided by server at runtime)
-    compileOnly(files("$serverDir/HytaleServer.jar"))
+    compileOnly("com.hypixel.hytale:Server:2026.01.22-6f8bdbdc4")
     
     // Common dependencies (will be bundled in JAR)
     implementation("com.google.code.gson:gson:2.10.1")

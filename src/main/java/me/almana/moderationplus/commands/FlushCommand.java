@@ -21,14 +21,14 @@ public class FlushCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
 
-        ctx.sendMessage(Message.raw("Flushing database...").color(Color.YELLOW));
+        ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.flush.start", null));
 
         return CompletableFuture.runAsync(() -> {
             try {
                 plugin.getStorageManager().flush();
-                ctx.sendMessage(Message.raw("Database flushed successfully.").color(Color.GREEN));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.flush.success", null));
             } catch (Exception e) {
-                ctx.sendMessage(Message.raw("Error flushing database: " + e.getMessage()).color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.flush.failed", null, java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown")));
                 e.printStackTrace();
             }
         });

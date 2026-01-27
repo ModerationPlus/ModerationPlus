@@ -21,12 +21,14 @@ public class ReportCommand extends AbstractCommand {
 
     private final RequiredArg<PlayerRef> playerArg;
     private final RequiredArg<String> reasonArg;
+    private final ModerationPlus plugin;
 
     private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
     private static final long COOLDOWN_MS = 30000; // 30 seconds
 
     public ReportCommand(ModerationPlus plugin) {
         super("report", "Report a player");
+        this.plugin = plugin;
 
         this.playerArg = withRequiredArg("player", "Player to report", (ArgumentType<PlayerRef>) ArgTypes.PLAYER_REF);
         this.reasonArg = withRequiredArg("reason", "Reason for report", (ArgumentType<String>) ArgTypes.STRING);
@@ -38,7 +40,7 @@ public class ReportCommand extends AbstractCommand {
         CommandSender sender = ctx.sender();
 
         if (!(sender instanceof Player)) {
-            ctx.sendMessage(Message.raw("Only players can use this command.").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.generic.player_only", null));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -49,26 +51,29 @@ public class ReportCommand extends AbstractCommand {
             long lastReport = cooldowns.get(reporterUuid);
             if (now - lastReport < COOLDOWN_MS) {
                 long secondsLeft = (COOLDOWN_MS - (now - lastReport)) / 1000;
-                ctx.sendMessage(Message.raw("Please wait " + secondsLeft + "s before submitting another report.")
-                        .color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.report.cooldown",
+                    reporterUuid,
+                    java.util.Map.of("seconds", String.valueOf(secondsLeft))
+                ));
                 return CompletableFuture.completedFuture(null);
             }
         }
 
         PlayerRef targetRef = ctx.get(playerArg);
         if (targetRef == null || !targetRef.isValid()) {
-            ctx.sendMessage(Message.raw("That player is not online.").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.report.offline", reporterUuid));
             return CompletableFuture.completedFuture(null);
         }
 
         if (targetRef.getUuid().equals(reporterUuid)) {
-            ctx.sendMessage(Message.raw("You cannot report yourself.").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.report.self", reporterUuid));
             return CompletableFuture.completedFuture(null);
         }
 
         String firstWord = ctx.get(reasonArg);
         if (firstWord == null || firstWord.trim().isEmpty()) {
-            ctx.sendMessage(Message.raw("Usage: /report <player> <reason>").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.report.usage", reporterUuid));
             return CompletableFuture.completedFuture(null);
         }
 

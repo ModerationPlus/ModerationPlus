@@ -52,7 +52,11 @@ public class UnbanCommand extends AbstractCommand {
         }
 
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Player '" + targetName + "' not found.").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.unban.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -63,10 +67,19 @@ public class UnbanCommand extends AbstractCommand {
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().unban(targetUuid, resolvedName, context).thenAccept(success -> {
+            UUID issuer = (sender instanceof Player) ? sender.getUuid() : null;
             if (success) {
-                ctx.sendMessage(Message.raw("Unbanned " + targetName).color(Color.GREEN));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.unban.success",
+                    issuer,
+                    java.util.Map.of("player", targetName)
+                ));
             } else {
-                ctx.sendMessage(Message.raw("Failed to unban " + targetName + " (maybe not banned?).").color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.unban.failed",
+                    issuer,
+                    java.util.Map.of("player", targetName)
+                ));
             }
         });
 

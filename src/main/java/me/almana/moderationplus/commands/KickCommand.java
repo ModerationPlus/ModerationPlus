@@ -55,12 +55,21 @@ public class KickCommand extends AbstractCommand {
         String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Player '" + targetName + "' not found in database.").color(Color.RED));
+            String msg = plugin.getLanguageManager().translate(
+                "command.kick.player_not_found",
+                plugin.getLanguageManager().getDefaultLocale(),
+                java.util.Map.of("player", targetName)
+            );
+            ctx.sendMessage(Message.raw(msg).color(Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 
         if (sender instanceof Player && targetUuid.equals(sender.getUuid())) {
-            ctx.sendMessage(Message.raw("You cannot kick yourself.").color(Color.RED));
+            String msg = plugin.getLanguageManager().translate(
+                "command.kick.cannot_kick_self",
+                plugin.getLanguageManager().getDefaultLocale()
+            );
+            ctx.sendMessage(Message.raw(msg).color(Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -70,11 +79,21 @@ public class KickCommand extends AbstractCommand {
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().kick(targetUuid, targetName, reason, context).thenAccept(success -> {
+            String locale = plugin.getLanguageManager().getDefaultLocale();
             if (success) {
-                ctx.sendMessage(Message.raw("Kicked " + targetName).color(Color.GREEN));
+                String msg = plugin.getLanguageManager().translate(
+                    "command.kick.success",
+                    locale,
+                    java.util.Map.of("player", targetName)
+                );
+                ctx.sendMessage(Message.raw(msg).color(Color.GREEN));
             } else {
-                ctx.sendMessage(Message.raw("Failed to kick " + targetName + " (player offline or bypassed).")
-                        .color(Color.RED));
+                String msg = plugin.getLanguageManager().translate(
+                    "command.kick.failed",
+                    locale,
+                    java.util.Map.of("player", targetName)
+                );
+                ctx.sendMessage(Message.raw(msg).color(Color.RED));
             }
         });
 

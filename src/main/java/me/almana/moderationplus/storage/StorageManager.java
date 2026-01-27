@@ -100,6 +100,9 @@ public class StorageManager {
         if (currentVersion < 7) {
             applyMigration7();
         }
+        if (currentVersion < 8) {
+            applyMigration8();
+        }
     }
 
     private int getAppliedMigrationVersion() throws SQLException {
@@ -280,17 +283,19 @@ public class StorageManager {
     }
 
     public PlayerData getPlayerByUUID(UUID uuid) throws SQLException {
-        String query = "SELECT id, uuid, username, first_seen, last_seen FROM players WHERE uuid = ?";
+        String query = "SELECT id, uuid, username, first_seen, last_seen, locale FROM players WHERE uuid = ?";
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setString(1, uuid.toString());
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
+                    String locale = rs.getString("locale");
                     return new PlayerData(
                             rs.getInt("id"),
                             UUID.fromString(rs.getString("uuid")),
                             rs.getString("username"),
                             rs.getLong("first_seen"),
-                            rs.getLong("last_seen"));
+                            rs.getLong("last_seen"),
+                            locale != null && !locale.isEmpty() ? java.util.Optional.of(locale) : java.util.Optional.empty());
                 }
             }
         }
@@ -311,7 +316,7 @@ public class StorageManager {
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     int id = generatedKeys.getInt(1);
-                    return new PlayerData(id, uuid, username, now, now);
+                    return new PlayerData(id, uuid, username, now, now, java.util.Optional.empty());
                 } else {
                     throw new SQLException("Creating player failed, no ID obtained.");
                 }
@@ -329,7 +334,8 @@ public class StorageManager {
         }
     }
 
-    public record PlayerData(int id, UUID uuid, String username, long firstSeen, long lastSeen) {
+    // PlayerData with optional locale
+    public record PlayerData(int id, UUID uuid, String username, long firstSeen, long lastSeen, java.util.Optional<String> locale) {
     }
 
     public void createPunishment(Punishment punishment) throws SQLException {
@@ -593,6 +599,54 @@ public class StorageManager {
             stmt.executeUpdate();
         } catch (SQLException e) {
             logger.at(Level.SEVERE).withCause(e).log("Failed to mark web command processed: %s", commandId);
+        }
+    }
+
+    // Add locale column to players table
+    private void applyMigration8() throws SQLException {
+        logger.at(Level.INFO).log("Applying migration 8...");
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("ALTER TABLE players ADD COLUMN locale TEXT;");
+
+            try (PreparedStatement recordStmt = connection.prepareStatement(
+                    "INSERT INTO migrations (version, applied_at) VALUES (?, ?)")) {
+                recordStmt.setInt(1, 8);
+                recordStmt.setLong(2, System.currentTimeMillis());
+                recordStmt.executeUpdate();
+            }
+        }
+
+        logger.at(Level.INFO).log("Migration 8 applied successfully.");
+    }
+
+    // Get player locale by UUID
+    public java.util.Optional<String> getPlayerLocale(UUID uuid) {
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT locale FROM players WHERE uuid = ?")) {
+            stmt.setString(1, uuid.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String locale = rs.getString("locale");
+                    return locale != null && !locale.isEmpty() ? java.util.Optional.of(locale) : java.util.Optional.empty();
+                }
+            }
+        } catch (SQLException e) {
+            logger.at(Level.SEVERE).withCause(e).log("Failed to get locale for %s", uuid);
+        }
+        return java.util.Optional.empty();
+    }
+
+
+
+    // Set player locale by UUID
+    // @deprecated Use LanguageManager.setPlayerLocale for caching support
+    public void setPlayerLocale(UUID uuid, String locale) {
+        try (PreparedStatement stmt = connection.prepareStatement("UPDATE players SET locale = ? WHERE uuid = ?")) {
+            stmt.setObject(1, locale);
+            stmt.setString(2, uuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            logger.at(Level.SEVERE).withCause(e).log("Failed to set locale for %s", uuid);
         }
     }
 }

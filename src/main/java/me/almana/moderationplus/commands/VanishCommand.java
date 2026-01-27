@@ -28,8 +28,7 @@ public class VanishCommand extends AbstractCommand {
 
 
         if (!(sender instanceof Player)) {
-            ctx.sendMessage(Message.raw("Only players can use this command.").color(java.awt.Color.RED));
-
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.generic.player_only", null));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -38,10 +37,9 @@ public class VanishCommand extends AbstractCommand {
         PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
 
         if (playerRef == null || !playerRef.isValid()) {
-            ctx.sendMessage(Message.raw("Failed to get your player reference.").color(java.awt.Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.vanish.ref_failed", playerUuid));
             return CompletableFuture.completedFuture(null);
         }
-
 
         me.almana.moderationplus.service.ExecutionContext context = new me.almana.moderationplus.service.ExecutionContext(
                 playerUuid,
@@ -51,9 +49,9 @@ public class VanishCommand extends AbstractCommand {
         plugin.getModerationService().toggleVanish(playerUuid, playerName, context)
                 .thenAccept(vanished -> {
                     if (vanished) {
-                        ctx.sendMessage(Message.raw("You are now vanished.").color(java.awt.Color.GREEN));
+                        ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.vanish.toggle_on", playerUuid));
                     } else {
-                        ctx.sendMessage(Message.raw("You are no longer vanished.").color(java.awt.Color.GREEN));
+                        ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.vanish.toggle_off", playerUuid));
                     }
                 });
 

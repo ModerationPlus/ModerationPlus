@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgumentType;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 
@@ -45,7 +46,11 @@ public class HistoryCommand extends AbstractCommand {
 
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.history.player_not_found",
+                (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -58,13 +63,21 @@ public class HistoryCommand extends AbstractCommand {
         try {
             PlayerData playerData = plugin.getStorageManager().getPlayerByUUID(targetUuid);
             if (playerData == null) {
-                ctx.sendMessage(Message.raw("No moderation history for " + resolvedName).color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.history.none",
+                    (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                    java.util.Map.of("player", resolvedName)
+                ));
                 return CompletableFuture.completedFuture(null);
             }
 
             List<Punishment> punishments = plugin.getStorageManager().getPunishmentsForPlayer(playerData.id());
             if (punishments.isEmpty()) {
-                ctx.sendMessage(Message.raw("No moderation history for " + resolvedName).color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.history.none",
+                    (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                    java.util.Map.of("player", resolvedName)
+                ));
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -72,21 +85,29 @@ public class HistoryCommand extends AbstractCommand {
             punishments.sort((a, b) -> Long.compare(b.createdAt(), a.createdAt()));
 
 
-            ctx.sendMessage(Message.raw("History for " + resolvedName + ":").color(Color.ORANGE));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.history.header",
+                (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                java.util.Map.of("player", resolvedName)
+            ));
 
 
             int index = 1;
             for (Punishment p : punishments) {
                 String details = formatDetails(p);
                 String timestamp = DATE_FORMATTER.format(Instant.ofEpochMilli(p.createdAt()));
-                String line = String.format("%d) %s — %s (%s) (%s)",
+                String line = String.format("&f%d) %s — %s (%s) (%s)",
                         index, p.type(), p.reason(), details, timestamp);
-                ctx.sendMessage(Message.raw(line).color(Color.WHITE));
+                ctx.sendMessage(me.almana.moderationplus.utils.ColorUtils.parse(line));
                 index++;
             }
 
         } catch (Exception e) {
-            ctx.sendMessage(Message.raw("Error retrieving history: " + e.getMessage()).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.history.failed",
+                (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown")
+            ));
             e.printStackTrace();
         }
         return CompletableFuture.completedFuture(null);

@@ -50,7 +50,10 @@ public class NoteCommand extends AbstractCommand {
             message = ctx.get(messageArg);
         }
         if (message == null || message.isEmpty()) {
-            ctx.sendMessage(Message.raw("Please provide a message for the note.").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.note.empty",
+                (sender instanceof Player) ? sender.getUuid() : null
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -69,7 +72,11 @@ public class NoteCommand extends AbstractCommand {
         }
 
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.note.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -81,13 +88,21 @@ public class NoteCommand extends AbstractCommand {
             plugin.getStorageManager().createStaffNote(note);
 
 
-            String staffMsg = "[Staff] " + issuerName + " added a note to " + resolvedName + " (" + message + ")";
-            plugin.notifyStaff(Message.raw(staffMsg).color(Color.YELLOW));
+            String staffMsg = "&e[Staff] " + issuerName + " added a note to " + resolvedName + " (" + message + ")";
+            plugin.notifyStaff(me.almana.moderationplus.utils.ColorUtils.parse(staffMsg));
 
-            ctx.sendMessage(Message.raw("Note added to " + resolvedName).color(Color.GREEN));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.note.success",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", resolvedName)
+            ));
 
         } catch (Exception e) {
-            ctx.sendMessage(Message.raw("Error adding note: " + e.getMessage()).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.note.failed",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown")
+            ));
             e.printStackTrace();
         }
         return CompletableFuture.completedFuture(null);

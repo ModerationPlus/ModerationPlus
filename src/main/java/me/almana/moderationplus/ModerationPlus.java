@@ -31,6 +31,7 @@ public class ModerationPlus extends JavaPlugin {
         this.staffChatDelivery = new me.almana.moderationplus.core.chat.DefaultStaffChatDelivery(this);
         this.moderationStateService = new me.almana.moderationplus.core.state.CoreModerationStateService(this);
         this.auditService = new me.almana.moderationplus.core.audit.CoreAuditService(this);
+        this.languageManager = new me.almana.moderationplus.i18n.LanguageManager();
     }
 
     public me.almana.moderationplus.api.event.EventBus getEventBus() {
@@ -59,6 +60,7 @@ public class ModerationPlus extends JavaPlugin {
     private final me.almana.moderationplus.api.chat.StaffChatDelivery staffChatDelivery;
     private final me.almana.moderationplus.core.state.CoreModerationStateService moderationStateService;
     private final me.almana.moderationplus.core.audit.CoreAuditService auditService;
+    private final me.almana.moderationplus.i18n.LanguageManager languageManager;
     private me.almana.moderationplus.web.WebPanelPollingService webPanelPollingService;
 
     @Override
@@ -66,6 +68,12 @@ public class ModerationPlus extends JavaPlugin {
         super.setup();
         storageManager.init();
         configManager.saveConfig();
+        
+        // Initialize language system
+        String defaultLocale = configManager.getLanguageDefaultLocale();
+        languageManager.init(defaultLocale);
+        languageManager.setStorageManager(storageManager);
+        
         moderationStateService.init();
         auditService.init();
 
@@ -90,6 +98,9 @@ public class ModerationPlus extends JavaPlugin {
         getCommandRegistry().registerCommand(new me.almana.moderationplus.commands.HistoryCommand(this));
         getCommandRegistry().registerCommand(new me.almana.moderationplus.commands.NoteCommand(this));
         getCommandRegistry().registerCommand(new me.almana.moderationplus.commands.NotesCommand(this));
+        getCommandRegistry().registerCommand(new me.almana.moderationplus.commands.LanguageCommand(this));
+        getCommandRegistry().registerCommand(new me.almana.moderationplus.commands.ModerationPlusCommand(this));
+
 
         getCommandRegistry().registerCommand(new SetJailCommand(this));
         getCommandRegistry().registerCommand(new JailCommand(this));
@@ -448,5 +459,9 @@ public class ModerationPlus extends JavaPlugin {
 
     public me.almana.moderationplus.service.ModerationService getModerationService() {
         return moderationService;
+    }
+
+    public me.almana.moderationplus.i18n.LanguageManager getLanguageManager() {
+        return languageManager;
     }
 }

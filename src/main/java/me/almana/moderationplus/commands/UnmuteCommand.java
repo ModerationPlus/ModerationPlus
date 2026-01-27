@@ -38,7 +38,11 @@ public class UnmuteCommand extends AbstractCommand {
 
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Player '" + targetName + "' not found.").color(java.awt.Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.unmute.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -49,10 +53,19 @@ public class UnmuteCommand extends AbstractCommand {
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().unmute(targetUuid, targetName, context).thenAccept(success -> {
+            UUID issuer = (sender instanceof Player) ? sender.getUuid() : null;
             if (success) {
-                ctx.sendMessage(Message.raw("Unmuted " + targetName).color(Color.GREEN));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.unmute.success",
+                    issuer,
+                    java.util.Map.of("player", targetName)
+                ));
             } else {
-                ctx.sendMessage(Message.raw("Failed to unmute " + targetName + " (maybe not muted?).").color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.unmute.failed",
+                    issuer,
+                    java.util.Map.of("player", targetName)
+                ));
             }
         });
 

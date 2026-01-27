@@ -55,7 +55,12 @@ public class MuteCommand extends AbstractCommand {
         String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            String msg = plugin.getLanguageManager().translate(
+                "command.mute.player_not_found",
+                plugin.getLanguageManager().getDefaultLocale(),
+                java.util.Map.of("player", targetName)
+            );
+            ctx.sendMessage(Message.raw(msg).color(Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -65,11 +70,21 @@ public class MuteCommand extends AbstractCommand {
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().mute(targetUuid, targetName, reason, context).thenAccept(success -> {
+            String locale = plugin.getLanguageManager().getDefaultLocale();
             if (success) {
-                ctx.sendMessage(Message.raw("Muted " + targetName).color(Color.GREEN));
+                String msg = plugin.getLanguageManager().translate(
+                    "command.mute.success",
+                    locale,
+                    java.util.Map.of("player", targetName)
+                );
+                ctx.sendMessage(Message.raw(msg).color(Color.GREEN));
             } else {
-                ctx.sendMessage(Message.raw("Failed to mute " + targetName + " (likely bypassed or already muted).")
-                        .color(Color.RED));
+                String msg = plugin.getLanguageManager().translate(
+                    "command.mute.failed",
+                    locale,
+                    java.util.Map.of("player", targetName)
+                );
+                ctx.sendMessage(Message.raw(msg).color(Color.RED));
             }
         });
 

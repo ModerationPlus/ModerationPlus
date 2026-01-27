@@ -35,7 +35,11 @@ public class UnfreezeCommand extends AbstractCommand {
 
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(java.awt.Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.unfreeze.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -56,10 +60,17 @@ public class UnfreezeCommand extends AbstractCommand {
                     }
                     return plugin.getModerationService().unfreeze(targetUuid, targetName, context).thenAccept(success -> {
                         if (success) {
-                            ctx.sendMessage(Message.raw("Unfroze " + targetName).color(java.awt.Color.GREEN));
+                            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                                "command.unfreeze.success",
+                                (sender instanceof Player) ? sender.getUuid() : null,
+                                java.util.Map.of("player", targetName)
+                            ));
                         } else {
-                            ctx.sendMessage(Message.raw("Failed to unfreeze " + targetName + " (maybe not frozen?).")
-                                    .color(java.awt.Color.RED));
+                            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                                "command.unfreeze.failed",
+                                (sender instanceof Player) ? sender.getUuid() : null,
+                                java.util.Map.of("player", targetName)
+                            ));
                         }
                     });
                 });

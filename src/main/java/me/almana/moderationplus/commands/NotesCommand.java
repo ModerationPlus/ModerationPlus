@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgumentType;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.NameMatching;
@@ -53,25 +54,41 @@ public class NotesCommand extends AbstractCommand {
         }
 
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.notes.player_not_found",
+                (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
         try {
             PlayerData playerData = plugin.getStorageManager().getPlayerByUUID(targetUuid);
             if (playerData == null) {
-                ctx.sendMessage(Message.raw("No staff notes for " + resolvedName).color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.notes.none",
+                    (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                    java.util.Map.of("player", resolvedName)
+                ));
                 return CompletableFuture.completedFuture(null);
             }
 
             List<StaffNote> notes = plugin.getStorageManager().getStaffNotes(playerData.id());
             if (notes.isEmpty()) {
-                ctx.sendMessage(Message.raw("No staff notes for " + resolvedName).color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.notes.none",
+                    (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                    java.util.Map.of("player", resolvedName)
+                ));
                 return CompletableFuture.completedFuture(null);
             }
 
 
-            ctx.sendMessage(Message.raw("Notes for " + resolvedName + ":").color(Color.ORANGE));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.notes.header",
+                (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                java.util.Map.of("player", resolvedName)
+            ));
 
 
             int index = 1;
@@ -95,15 +112,19 @@ public class NotesCommand extends AbstractCommand {
                     }
                 }
 
-                String line = String.format("%d) (%s) %s — by %s",
+                String line = String.format("&f%d) (%s) %s — by %s",
                         index, timestamp, note.message(), issuerName);
-                ctx.sendMessage(Message.raw(line).color(Color.WHITE));
+                ctx.sendMessage(me.almana.moderationplus.utils.ColorUtils.parse(line));
 
                 index++;
             }
 
         } catch (Exception e) {
-            ctx.sendMessage(Message.raw("Error retrieving notes: " + e.getMessage()).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.notes.failed",
+                (ctx.sender() instanceof Player) ? ctx.sender().getUuid() : null,
+                java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown")
+            ));
             e.printStackTrace();
         }
         return CompletableFuture.completedFuture(null);

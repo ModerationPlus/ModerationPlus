@@ -203,4 +203,16 @@ public class ConfigManager {
         }
         return webPanel.get("claim_url").getAsString();
     }
+
+    // Read-only language config
+    public String getLanguageDefaultLocale() {
+        if (!config.has("language")) {
+            return null;
+        }
+        JsonObject language = config.getAsJsonObject("language");
+        if (!language.has("default")) {
+            return null;
+        }
+        return language.get("default").getAsString();
+    }
 }

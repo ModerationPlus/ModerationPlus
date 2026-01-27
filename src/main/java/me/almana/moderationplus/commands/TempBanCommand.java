@@ -69,7 +69,10 @@ public class TempBanCommand extends AbstractCommand {
         try {
             duration = TimeUtils.parseDuration(durationStr);
         } catch (IllegalArgumentException e) {
-            ctx.sendMessage(Message.raw("Invalid duration format. Use 5m, 1h, 1d, etc.").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.generic.invalid_duration",
+                (sender instanceof Player) ? sender.getUuid() : null
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -77,7 +80,11 @@ public class TempBanCommand extends AbstractCommand {
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
 
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.tempban.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -87,13 +94,19 @@ public class TempBanCommand extends AbstractCommand {
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().tempBan(targetUuid, targetName, reason, duration, context).thenAccept(success -> {
+            UUID issuer = (sender instanceof Player) ? sender.getUuid() : null;
             if (success) {
-                ctx.sendMessage(
-                        Message.raw("Temp-banned " + targetName + " for " + TimeUtils.formatDuration(duration))
-                                .color(Color.GREEN));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.tempban.success",
+                    issuer,
+                    java.util.Map.of("player", targetName, "duration", me.almana.moderationplus.utils.TimeUtils.formatDuration(duration))
+                ));
             } else {
-                ctx.sendMessage(Message.raw("Failed to temp-ban " + targetName + " (likely bypassed or already banned).")
-                        .color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.tempban.failed",
+                    issuer,
+                    java.util.Map.of("player", targetName)
+                ));
             }
         });
 

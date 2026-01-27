@@ -39,7 +39,10 @@ public class StaffChatCommand extends AbstractCommand {
 
         String firstWord = ctx.get(messageArg);
         if (firstWord == null || firstWord.trim().isEmpty()) {
-            ctx.sendMessage(Message.raw("Usage: /schat <message>").color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.staffchat.usage",
+                (sender instanceof Player) ? sender.getUuid() : null
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -59,7 +62,10 @@ public class StaffChatCommand extends AbstractCommand {
             channel = plugin.getChatChannelRegistry().getChannel("staff")
                     .orElseThrow(() -> new IllegalStateException("Staff channel not registered!"));
         } catch (Exception e) {
-             ctx.sendMessage(Message.raw("Error: Staff channel missing.").color(Color.RED));
+             ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                 "command.staffchat.no_channel",
+                 (sender instanceof Player) ? sender.getUuid() : null
+             ));
              return CompletableFuture.completedFuture(null);
         }
 

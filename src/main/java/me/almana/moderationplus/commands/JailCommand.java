@@ -43,10 +43,10 @@ public class JailCommand extends AbstractCommand {
         String targetName = ctx.get(playerArg);
 
         if (!plugin.getConfigManager().hasJailLocation()) {
-            ctx.sendMessage(Message.raw("Jail location is not set. Use /setjail to configure.").color(Color.RED));
-            if (sender.hasPermission("moderation.setjail")) {
-                ctx.sendMessage(Message.raw("Run /setjail to set the jail location.").color(Color.YELLOW));
-            }
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.jail.not_configured",
+                (sender instanceof Player) ? sender.getUuid() : null
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -72,14 +72,20 @@ public class JailCommand extends AbstractCommand {
                 try {
                     durationMillis = me.almana.moderationplus.utils.TimeUtils.parseDuration(firstToken);
                     if (durationMillis <= 0) {
-                        ctx.sendMessage(Message.raw("Duration must be positive.").color(Color.RED));
+                        ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                            "command.jail.duration_positive",
+                            (sender instanceof Player) ? sender.getUuid() : null
+                        ));
                         return CompletableFuture.completedFuture(null);
                     }
                     String candidateReason = argsStr.substring(firstToken.length()).trim();
                     if (!candidateReason.isEmpty()) reason = candidateReason;
                     parsed = true;
                 } catch (IllegalArgumentException e) {
-                     ctx.sendMessage(Message.raw("Invalid duration format: " + firstToken + " (Example: 10m, 2h, 1d)").color(Color.RED));
+                     ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                         "command.generic.invalid_duration",
+                         (sender instanceof Player) ? sender.getUuid() : null
+                     ));
                      return CompletableFuture.completedFuture(null);
                 }
             } 
@@ -96,7 +102,10 @@ public class JailCommand extends AbstractCommand {
                     }
                 } catch (IllegalArgumentException e) {
                      // If last token looks like duration but fails, notify user to avoid confusion
-                     ctx.sendMessage(Message.raw("Invalid duration format: " + lastToken + " (Example: 10m, 2h, 1d)").color(Color.RED));
+                     ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                         "command.generic.invalid_duration",
+                         (sender instanceof Player) ? sender.getUuid() : null
+                     ));
                      return CompletableFuture.completedFuture(null);
                 }
             }
@@ -109,7 +118,11 @@ public class JailCommand extends AbstractCommand {
         String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.jail.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -117,7 +130,10 @@ public class JailCommand extends AbstractCommand {
         try {
             List<Punishment> activeJails = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(), "JAIL");
             if (!activeJails.isEmpty()) {
-                ctx.sendMessage(Message.raw("Player is already jailed.").color(Color.RED));
+                ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                    "command.jail.already_jailed",
+                    (sender instanceof Player) ? sender.getUuid() : null
+                ));
                 return CompletableFuture.completedFuture(null);
             }
         } catch (Exception e) {
@@ -145,7 +161,11 @@ public class JailCommand extends AbstractCommand {
                         if (success) {
                             // Success message handled by service
                         } else {
-                            ctx.sendMessage(Message.raw("Failed to jail " + targetName + ".").color(Color.RED));
+                            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                                "command.jail.failed",
+                                (sender instanceof Player) ? sender.getUuid() : null,
+                                java.util.Map.of("player", targetName)
+                            ));
                         }
                     });
                 });

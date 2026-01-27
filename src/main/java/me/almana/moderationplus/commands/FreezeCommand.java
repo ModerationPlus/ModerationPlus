@@ -37,7 +37,11 @@ public class FreezeCommand extends AbstractCommand {
 
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Player '" + targetName + "' not found.").color(java.awt.Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.freeze.player_not_found",
+                (sender instanceof Player) ? sender.getUuid() : null,
+                java.util.Map.of("player", targetName)
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -58,10 +62,17 @@ public class FreezeCommand extends AbstractCommand {
                     }
                     return plugin.getModerationService().freeze(targetUuid, targetName, context).thenAccept(success -> {
                         if (success) {
-                            ctx.sendMessage(Message.raw("Froze " + targetName).color(java.awt.Color.GREEN));
+                            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                                "command.freeze.success",
+                                (sender instanceof Player) ? sender.getUuid() : null,
+                                java.util.Map.of("player", targetName)
+                            ));
                         } else {
-                            ctx.sendMessage(Message.raw("Failed to freeze " + targetName + " (offline or bypassed).")
-                                    .color(java.awt.Color.RED));
+                            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                                "command.freeze.failed",
+                                (sender instanceof Player) ? sender.getUuid() : null,
+                                java.util.Map.of("player", targetName)
+                            ));
                         }
                     });
                 });

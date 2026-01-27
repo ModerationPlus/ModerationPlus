@@ -54,7 +54,12 @@ public class WarnCommand extends AbstractCommand {
         String issuerName = (sender instanceof Player) ? sender.getDisplayName() : "Console";
         UUID targetUuid = plugin.getStorageManager().getUuidByUsername(targetName);
         if (targetUuid == null) {
-            ctx.sendMessage(Message.raw("Cannot resolve UUID for " + targetName).color(Color.RED));
+            String msg = plugin.getLanguageManager().translate(
+                "command.warn.player_not_found",
+                plugin.getLanguageManager().getDefaultLocale(),
+                java.util.Map.of("player", targetName)
+            );
+            ctx.sendMessage(Message.raw(msg).color(Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -64,7 +69,12 @@ public class WarnCommand extends AbstractCommand {
                 me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().warn(targetUuid, targetName, reason, context).thenAccept(success -> {
-            ctx.sendMessage(Message.raw("Warned " + targetName).color(Color.GREEN));
+            String msg = plugin.getLanguageManager().translate(
+                "command.warn.success",
+                plugin.getLanguageManager().getDefaultLocale(),
+                java.util.Map.of("player", targetName)
+            );
+            ctx.sendMessage(Message.raw(msg).color(Color.GREEN));
         });
 
         return CompletableFuture.completedFuture(null);

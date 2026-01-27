@@ -15,6 +15,7 @@ import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.math.vector.Vector3d;
 import me.almana.moderationplus.ModerationPlus;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class SetJailCommand extends AbstractCommand {
@@ -55,7 +56,7 @@ public class SetJailCommand extends AbstractCommand {
                 try {
                     PlayerRef ref = Universe.get().getPlayer(username, NameMatching.EXACT);
                     if (ref == null || !ref.isValid()) {
-                        player.sendMessage(Message.raw("Failed to resolve your player reference.").color(Color.RED));
+                        player.sendMessage(plugin.getLanguageManager().translateToMessage("command.setjail.player_ref_failed", player.getUuid()));
                         return;
                     }
 
@@ -63,18 +64,28 @@ public class SetJailCommand extends AbstractCommand {
                             .getComponent(ref.getReference(), TransformComponent.getComponentType());
 
                     if (transform == null) {
-                        player.sendMessage(Message.raw("Failed to get your position component.").color(Color.RED));
+                        player.sendMessage(plugin.getLanguageManager().translateToMessage("command.setjail.player_location_failed", player.getUuid()));
                         return;
                     }
 
                     Vector3d position = transform.getPosition();
                     plugin.getConfigManager().setJailLocation(position.getX(), position.getY(), position.getZ());
-                    player.sendMessage(
-                            Message.raw(String.format("Jail location set to your position (%.1f, %.1f, %.1f)",
-                                    position.getX(), position.getY(), position.getZ())).color(Color.GREEN));
+                    player.sendMessage(plugin.getLanguageManager().translateToMessage(
+                        "command.setjail.success",
+                        player.getUuid(),
+                        java.util.Map.of(
+                            "x", String.format("%.1f", position.getX()),
+                            "y", String.format("%.1f", position.getY()),
+                            "z", String.format("%.1f", position.getZ())
+                        )
+                    ));
 
                 } catch (Exception e) {
-                    player.sendMessage(Message.raw("Error setting jail location: " + e.getMessage()).color(Color.RED));
+                    player.sendMessage(plugin.getLanguageManager().translateToMessage(
+                        "command.setjail.failed",
+                        player.getUuid(),
+                        java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown error")
+                    ));
                     e.printStackTrace();
                 }
             }, player.getWorld());
@@ -83,17 +94,30 @@ public class SetJailCommand extends AbstractCommand {
         }
 
         // Case 3: No coordinates, and is Console
-        ctx.sendMessage(Message.raw("Console must specify coordinates: /setjail <x> <y> <z>").color(Color.RED));
+        ctx.sendMessage(plugin.getLanguageManager().translateToMessage("command.setjail.console_usage", null));
         return CompletableFuture.completedFuture(null);
     }
 
     private void setJailLocation(CommandContext ctx, double x, double y, double z) {
+        CommandSender sender = ctx.sender();
+        UUID uuid = (sender instanceof Player) ? sender.getUuid() : null;
         try {
             plugin.getConfigManager().setJailLocation(x, y, z);
-            ctx.sendMessage(Message.raw(String.format("Jail location set to X=%.1f Y=%.1f Z=%.1f", x, y, z))
-                    .color(Color.GREEN));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.setjail.success",
+                uuid,
+                java.util.Map.of(
+                    "x", String.format("%.1f", x),
+                    "y", String.format("%.1f", y),
+                    "z", String.format("%.1f", z)
+                )
+            ));
         } catch (Exception e) {
-            ctx.sendMessage(Message.raw("Error setting jail location: " + e.getMessage()).color(Color.RED));
+            ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
+                "command.setjail.failed",
+                uuid,
+                java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "Unknown error")
+            ));
             e.printStackTrace();
         }
     }
