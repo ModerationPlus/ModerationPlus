@@ -29,7 +29,10 @@ import me.almana.moderationplus.api.event.punishment.PunishmentPreApplyEvent;
 import me.almana.moderationplus.core.punishment.DefaultPunishmentTypes;
 import java.time.Duration;
 import com.hypixel.hytale.server.core.HytaleServer;
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import me.almana.moderationplus.api.event.ModEvent;
+import java.util.Map;
+import java.util.Optional;
 
 public class ModerationService {
 
@@ -48,7 +51,7 @@ public class ModerationService {
     public CompletableFuture<Boolean> ban(UUID targetUuid, String targetName, String reason, ExecutionContext context) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
+                if (PermissionsModule.get().hasPermission(targetUuid,
                         "moderation.bypass")) {
                     return false;
                 }
@@ -95,7 +98,7 @@ public class ModerationService {
                     String staffMsg = plugin.getLanguageManager().translate(
                         "staff.ban.notify",
                         locale,
-                        java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", finalReason)
+                        Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", finalReason)
                     );
                     plugin.notifyStaff(Message.raw(staffMsg).color(Color.GREEN));
 
@@ -106,7 +109,7 @@ public class ModerationService {
                              if (world != null) {
                                   ((Executor) world).execute(() -> {
                                       if (ref.isValid()) {
-                                          ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.banned.permanent", ref.getUuid(), java.util.Map.of("reason", finalReason)));
+                                          ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.banned.permanent", ref.getUuid(), Map.of("reason", finalReason)));
                                       }
                                   });
                              }
@@ -127,7 +130,7 @@ public class ModerationService {
             ExecutionContext context) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
+                if (PermissionsModule.get().hasPermission(targetUuid,
                         "moderation.bypass")) {
                     return false;
                 }
@@ -155,7 +158,7 @@ public class ModerationService {
                 
                 dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.kick.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.kick.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
 
                 UUID worldUuid = ref.getWorldUuid();
                 if (worldUuid != null) {
@@ -164,7 +167,7 @@ public class ModerationService {
                          String finalReason = apiPunishment.reason();
                         ((Executor) world).execute(() -> {
                             if (ref.isValid()) {
-                                ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.kicked", ref.getUuid(), java.util.Map.of("reason", finalReason)));
+                                ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.kicked", ref.getUuid(), Map.of("reason", finalReason)));
                             }
                         });
                     }
@@ -181,7 +184,7 @@ public class ModerationService {
             ExecutionContext context) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
+                if (PermissionsModule.get().hasPermission(targetUuid,
                         "moderation.bypass")) {
                     return false;
                 }
@@ -215,11 +218,11 @@ public class ModerationService {
                 
                 dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.mute.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.mute.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
 
                 if (ref != null && ref.isValid()) {
                     ref.sendMessage(
-                            plugin.getLanguageManager().translateToMessage("player.muted.permanent", ref.getUuid(), java.util.Map.of("reason", apiPunishment.reason())));
+                            plugin.getLanguageManager().translateToMessage("player.muted.permanent", ref.getUuid(), Map.of("reason", apiPunishment.reason())));
                 }
                 return true;
             } catch (Exception e) {
@@ -261,7 +264,7 @@ public class ModerationService {
                 }
 
                 if (nativeUnbanned || dbUnbanned) {
-                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unban.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unban.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName)));
                     return true;
                 }
                 return false;
@@ -291,7 +294,7 @@ public class ModerationService {
                     );
                     plugin.getEventBus().dispatch(new PunishmentExpiredEvent(apiPunishment));
                     
-                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unmute.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unmute.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName)));
                     if (ref != null && ref.isValid()) {
                         ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.unmuted", ref.getUuid()));
                     }
@@ -309,7 +312,7 @@ public class ModerationService {
             ExecutionContext context) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
+                if (PermissionsModule.get().hasPermission(targetUuid,
                         "moderation.bypass")) {
                     return false;
                 }
@@ -356,7 +359,7 @@ public class ModerationService {
                     plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
                     String durationStr = TimeUtils.formatDuration(finalDuration);
-                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.tempban.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr, "reason", apiPunishment.reason())));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.tempban.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr, "reason", apiPunishment.reason())));
 
                     if (isOnline && ref != null && ref.isValid()) {
                         UUID worldUuid = ref.getWorldUuid();
@@ -366,7 +369,7 @@ public class ModerationService {
                                 String finalReason = apiPunishment.reason();
                                 ((Executor) world).execute(() -> {
                                     if (ref.isValid()) {
-                                        ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.banned.temporary", ref.getUuid(), java.util.Map.of("duration", durationStr, "reason", finalReason)));
+                                        ref.getPacketHandler().disconnect(plugin.getLanguageManager().translateForPlayer("player.banned.temporary", ref.getUuid(), Map.of("duration", durationStr, "reason", finalReason)));
                                     }
                                 });
                             }
@@ -386,7 +389,7 @@ public class ModerationService {
             ExecutionContext context) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
+                if (PermissionsModule.get().hasPermission(targetUuid,
                         "moderation.bypass")) {
                     return false;
                 }
@@ -421,10 +424,10 @@ public class ModerationService {
                 plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
                 String durationStr = TimeUtils.formatDuration(finalDuration);
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.tempmute.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr, "reason", apiPunishment.reason())));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.tempmute.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr, "reason", apiPunishment.reason())));
 
                 if (ref != null && ref.isValid()) {
-                    ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.muted.temporary", ref.getUuid(), java.util.Map.of("duration", durationStr, "reason", apiPunishment.reason())));
+                    ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.muted.temporary", ref.getUuid(), Map.of("duration", durationStr, "reason", apiPunishment.reason())));
                 }
                 return true;
             } catch (Exception e) {
@@ -460,10 +463,10 @@ public class ModerationService {
                 
                 plugin.getEventBus().dispatch(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.warn.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.warn.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName, "reason", apiPunishment.reason())));
 
                 if (ref != null && ref.isValid()) {
-                    ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.warned", ref.getUuid(), java.util.Map.of("reason", apiPunishment.reason())));
+                    ref.sendMessage(plugin.getLanguageManager().translateToMessage("player.warned", ref.getUuid(), Map.of("reason", apiPunishment.reason())));
                 }
                 return true;
             } catch (Exception e) {
@@ -488,7 +491,7 @@ public class ModerationService {
                     return false;
                 }
 
-                if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
+                if (PermissionsModule.get().hasPermission(targetUuid,
                         "moderation.jail.bypass")) {
                     return false;
                 }
@@ -557,7 +560,7 @@ public class ModerationService {
                                     EventTitleUtil.showEventTitleToPlayer(
                                             ref,
                                             plugin.getLanguageManager().translateToMessage("player.jail.entry", ref.getUuid()),
-                                            plugin.getLanguageManager().translateToMessage("player.warned", ref.getUuid(), java.util.Map.of("reason", finalApiPunishment.reason())), 
+                                            plugin.getLanguageManager().translateToMessage("player.warned", ref.getUuid(), Map.of("reason", finalApiPunishment.reason())), 
                                             true);
                                 }
                             });
@@ -574,9 +577,9 @@ public class ModerationService {
 
                 String durationStr = finalDuration > 0 ? TimeUtils.formatDuration(finalDuration) : "permanent";
                 if (finalDuration > 0) {
-                     plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.jail.notify_duration", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr)));
+                     plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.jail.notify_duration", null, Map.of("issuer", context.issuerName(), "target", resolvedName, "duration", durationStr)));
                 } else {
-                     plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.jail.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
+                     plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.jail.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName)));
                 }
                 return true;
             } catch (Exception e) {
@@ -654,7 +657,7 @@ public class ModerationService {
                     }
                 }
 
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unjail.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unjail.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName)));
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -666,7 +669,7 @@ public class ModerationService {
     public CompletableFuture<Boolean> freeze(UUID targetUuid, String targetName, ExecutionContext context) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().hasPermission(targetUuid,
+                if (PermissionsModule.get().hasPermission(targetUuid,
                         "moderation.freeze.bypass")) {
                     return false;
                 }
@@ -713,7 +716,7 @@ public class ModerationService {
                 
                 dispatchSync(new PunishmentAppliedEvent(apiPunishment));
 
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.freeze.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", resolvedName)));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.freeze.notify", null, Map.of("issuer", context.issuerName(), "target", resolvedName)));
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -730,7 +733,7 @@ public class ModerationService {
                 );
                 dispatchSync(new PunishmentExpiredEvent(apiPunishment));
                 
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unfreeze.notify", null, java.util.Map.of("issuer", context.issuerName(), "target", targetName)));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unfreeze.notify", null, Map.of("issuer", context.issuerName(), "target", targetName)));
                 
                 PlayerRef ref = Universe.get().getPlayer(targetUuid);
                 if (ref != null && ref.isValid() && ref.getWorldUuid() != null) {
@@ -762,7 +765,7 @@ public class ModerationService {
                         observer.getHiddenPlayersManager().showPlayer(playerUuid);
                     }
                 });
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.vanish.disabled", null, java.util.Map.of("player", playerName)));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.vanish.disabled", null, Map.of("player", playerName)));
                 return false; // Not vanished
             } else {
                 plugin.addVanishedPlayer(playerUuid);
@@ -770,7 +773,7 @@ public class ModerationService {
                     if (observer != null && observer.isValid()) {
                         UUID observerUuid = observer.getUuid();
                         if (!observerUuid.equals(playerUuid)) {
-                            boolean canSee = com.hypixel.hytale.server.core.permissions.PermissionsModule.get()
+                            boolean canSee = PermissionsModule.get()
                                     .hasPermission(observerUuid, "moderation.vanish.see");
                             if (canSee) {
                                 observer.getHiddenPlayersManager().showPlayer(playerUuid);
@@ -780,22 +783,22 @@ public class ModerationService {
                         }
                     }
                 });
-                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.vanish.enabled", null, java.util.Map.of("player", playerName)));
+                plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.vanish.enabled", null, Map.of("player", playerName)));
                 return true; // Vanished
             }
         });
     }
-    public java.util.Optional<Punishment> getActiveMute(UUID uuid, String username) {
+    public Optional<Punishment> getActiveMute(UUID uuid, String username) {
         try {
             PlayerData playerData = plugin.getStorageManager().getOrCreatePlayer(uuid, username);
             List<Punishment> mutes = plugin.getStorageManager().getActivePunishmentsByType(playerData.id(), "MUTE");
             for (Punishment p : mutes) {
                 if (p.expiresAt() > 0 && System.currentTimeMillis() > p.expiresAt()) {
                     plugin.getStorageManager().deactivatePunishment(p.id());
-                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unmute.notify", null, java.util.Map.of("issuer", "System", "target", username)));
+                    plugin.notifyStaff(plugin.getLanguageManager().translateToMessage("staff.unmute.notify", null, Map.of("issuer", "System", "target", username)));
                     continue;
                 }
-                return java.util.Optional.of(p);
+                return Optional.of(p);
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -14,6 +14,8 @@ import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import me.almana.moderationplus.component.FrozenComponent;
 import me.almana.moderationplus.component.JailedComponent;
+import me.almana.moderationplus.ModerationPlus;
+import me.almana.moderationplus.service.ExecutionContext;
 
 import javax.annotation.Nonnull;
 import java.util.Iterator;
@@ -21,10 +23,10 @@ import java.util.List;
 
 public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
 
-    private final me.almana.moderationplus.ModerationPlus plugin;
+    private final ModerationPlus plugin;
     private final Query<EntityStore> query;
 
-    public PlayerFreezeSystem(me.almana.moderationplus.ModerationPlus plugin) {
+    public PlayerFreezeSystem(ModerationPlus plugin) {
         this.plugin = plugin;
         this.query = Query.and(
                 Player.getComponentType(),
@@ -64,7 +66,7 @@ public class PlayerFreezeSystem extends EntityTickingSystem<EntityStore> {
              
              Player player = archetypeChunk.getComponent(index, Player.getComponentType());
              if (player != null) {
-                 me.almana.moderationplus.service.ExecutionContext ctx = me.almana.moderationplus.service.ExecutionContext.console();
+                 ExecutionContext ctx = ExecutionContext.console();
                  plugin.getModerationService().unjail(player.getUuid(), player.getDisplayName(), ctx);
              }
              return;

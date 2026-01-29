@@ -7,6 +7,7 @@ import me.almana.moderationplus.service.ModerationService;
 
 import java.util.List;
 import java.util.logging.Level;
+import java.util.concurrent.CompletableFuture;
 
 public class WebCommandExecutor {
 
@@ -57,7 +58,7 @@ public class WebCommandExecutor {
         String action = intent.action().toUpperCase();
 
         try {
-            java.util.concurrent.CompletableFuture<Boolean> future = switch (action) {
+            CompletableFuture<Boolean> future = switch (action) {
                 case "BAN" -> service.ban(intent.targetUuid(), intent.targetName(), intent.reason(), context);
                 case "TEMPBAN" -> service.tempBan(intent.targetUuid(), intent.targetName(), intent.reason(),
                         intent.duration(), context);
@@ -76,7 +77,7 @@ public class WebCommandExecutor {
                 default -> {
                     logger.at(Level.WARNING).log("Unknown web action: %s", action);
                     ackService.sendAck(intent.id(), false, "Unknown or unsupported action: " + action);
-                    yield java.util.concurrent.CompletableFuture.completedFuture(false);
+                    yield CompletableFuture.completedFuture(false);
                 }
             };
 

@@ -19,6 +19,8 @@ import me.almana.moderationplus.utils.TimeUtils;
 import java.util.UUID;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import me.almana.moderationplus.service.ExecutionContext;
+import java.util.Map;
 
 public class TempMuteCommand extends AbstractCommand {
 
@@ -75,15 +77,15 @@ public class TempMuteCommand extends AbstractCommand {
             ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
                 "command.tempmute.player_not_found",
                 (sender instanceof Player) ? sender.getUuid() : null,
-                java.util.Map.of("player", targetName)
+                Map.of("player", targetName)
             ));
             return CompletableFuture.completedFuture(null);
         }
 
-        me.almana.moderationplus.service.ExecutionContext context = new me.almana.moderationplus.service.ExecutionContext(
+        ExecutionContext context = new ExecutionContext(
                 (sender instanceof Player) ? sender.getUuid() : UUID.nameUUIDFromBytes("CONSOLE".getBytes()),
                 issuerName,
-                me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
+                ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().tempMute(targetUuid, targetName, reason, duration, context).thenAccept(success -> {
             UUID issuer = (sender instanceof Player) ? sender.getUuid() : null;
@@ -91,13 +93,13 @@ public class TempMuteCommand extends AbstractCommand {
                 ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
                     "command.tempmute.success",
                     issuer,
-                    java.util.Map.of("player", targetName, "duration", me.almana.moderationplus.utils.TimeUtils.formatDuration(duration))
+                    Map.of("player", targetName, "duration", TimeUtils.formatDuration(duration))
                 ));
             } else {
                 ctx.sendMessage(plugin.getLanguageManager().translateToMessage(
                     "command.tempmute.failed",
                     issuer,
-                    java.util.Map.of("player", targetName)
+                    Map.of("player", targetName)
                 ));
             }
         });
