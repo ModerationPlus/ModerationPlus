@@ -157,6 +157,8 @@ public class ModerationPlus extends JavaPlugin {
         getCommandRegistry().registerCommand(new ChatLockdownCommand(this));
         getCommandRegistry().registerCommand(new FreezeCommand(this));
         getCommandRegistry().registerCommand(new UnfreezeCommand(this));
+        getCommandRegistry().registerCommand(new FirstJoinCommand(this));
+        getCommandRegistry().registerCommand(new LastSeenCommand(this));
 
         // Snapshot system registration
         getEntityStoreRegistry().registerSystem(new VanishSnapshotSystem(this));

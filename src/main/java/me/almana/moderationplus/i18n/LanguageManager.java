@@ -50,6 +50,9 @@ public class LanguageManager {
 
     // Load all language files
     private void loadLanguageFiles() {
+        // 1. Load internal default (en_us) from JAR to ensure base keys exist
+        loadInternalResource("en_us", "lang/en_us.json");
+
         saveDefaultLanguageFile();
 
         File langDir = new File(LANG_DIR);
@@ -59,13 +62,36 @@ public class LanguageManager {
 
         File[] files = langDir.listFiles((dir, name) -> name.endsWith(".json"));
         if (files == null || files.length == 0) {
-            logger.at(Level.WARNING).log("[Lang] No language files found in %s", LANG_DIR);
+            // Only warn if we barely have anything (though internal should have loaded)
+            if (translations.isEmpty()) {
+                logger.at(Level.WARNING).log("[Lang] No language files found in %s", LANG_DIR);
+            }
             return;
         }
 
         for (File file : files) {
             String locale = file.getName().replace(".json", "");
             loadLanguageFile(locale, file);
+        }
+    }
+
+    private void loadInternalResource(String locale, String resourcePath) {
+        try (java.io.InputStream in = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (in == null) return;
+            try (java.io.InputStreamReader reader = new java.io.InputStreamReader(in)) {
+                JsonObject json = GSON.fromJson(reader, JsonObject.class);
+                if (json != null) {
+                    Map<String, String> localeMap = translations.computeIfAbsent(locale, k -> new ConcurrentHashMap<>());
+                    json.entrySet().forEach(entry -> {
+                        if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isString()) {
+                            localeMap.put(entry.getKey(), entry.getValue().getAsString());
+                        }
+                    });
+                    logger.at(Level.INFO).log("[Lang] Loaded internal defaults for %s", locale);
+                }
+            }
+        } catch (Exception e) {
+            logger.at(Level.WARNING).withCause(e).log("[Lang] Failed to load internal resource %s", resourcePath);
         }
     }
 
@@ -101,14 +127,13 @@ public class LanguageManager {
                 return;
             }
 
-            Map<String, String> localeMap = new HashMap<>();
+            Map<String, String> localeMap = translations.computeIfAbsent(locale, k -> new ConcurrentHashMap<>());
             json.entrySet().forEach(entry -> {
                 if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isString()) {
                     localeMap.put(entry.getKey(), entry.getValue().getAsString());
                 }
             });
 
-            translations.put(locale, localeMap);
             logger.at(Level.INFO).log("[Lang] Loaded %s", locale);
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log("[Lang] Failed to load %s, skipping", file.getName());

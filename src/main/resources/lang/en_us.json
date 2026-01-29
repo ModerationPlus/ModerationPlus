@@ -110,5 +110,14 @@
   "command.history.player_not_found": "&cCannot resolve UUID for {player}",
   "command.notes.player_not_found": "&cCannot resolve UUID for {player}",
   "command.note.player_not_found": "&cCannot resolve UUID for {player}",
-  "staff.jail.join_notify": "&e[Staff] Jailed player {player} joined the server"
+  "staff.jail.join_notify": "&e[Staff] Jailed player {player} joined the server",
+  "command.firstjoin.success": "&a{player} first joined on {time}",
+  "command.firstjoin.not_found": "&cPlayer '{player}' not found in database",
+  "command.firstjoin.never_joined": "&cPlayer '{player}' has never joined",
+  "command.firstjoin.error": "&cError retrieving first join data",
+  "command.lastseen.online": "&a{player} is currently online",
+  "command.lastseen.success": "&a{player} was last seen on {time}",
+  "command.lastseen.not_found": "&cPlayer '{player}' not found in database",
+  "command.lastseen.never_seen": "&cPlayer '{player}' has never been seen",
+  "command.lastseen.error": "&cError retrieving last seen data"
 }

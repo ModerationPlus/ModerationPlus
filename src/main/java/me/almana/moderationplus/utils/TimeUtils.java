@@ -1,11 +1,22 @@
 package me.almana.moderationplus.utils;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import java.util.Locale;
 
 public class TimeUtils {
 
     private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)([mhdw])");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
+            .withZone(ZoneId.systemDefault());
+
+    public static String formatTime(long timestamp, String locale) {
+        return DATE_FORMAT.withLocale(Locale.forLanguageTag(locale)).format(Instant.ofEpochMilli(timestamp));
+    }
 
     public static long parseDuration(String input) {
         Matcher matcher = DURATION_PATTERN.matcher(input.toLowerCase());
