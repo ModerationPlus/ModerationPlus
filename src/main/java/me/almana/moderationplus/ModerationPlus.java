@@ -49,6 +49,7 @@ import me.almana.moderationplus.system.VanishSnapshotSystem;
 import me.almana.moderationplus.utils.TimeUtils;
 import me.almana.moderationplus.web.WebPanelBootstrap;
 import me.almana.moderationplus.web.WebPanelPollingService;
+import me.almana.moderationplus.listeners.ModerationListeners;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -95,7 +96,6 @@ public class ModerationPlus extends JavaPlugin {
         return moderationStateService;
     }
 
-    private final Map<UUID, Long> lastMuteFeedback = new ConcurrentHashMap<>();
     private volatile boolean chatLocked = false;
     private final ConfigManager configManager;
     private final Set<UUID> vanishedPlayers = ConcurrentHashMap.newKeySet();
@@ -161,92 +161,22 @@ public class ModerationPlus extends JavaPlugin {
         // Snapshot system registration
         getEntityStoreRegistry().registerSystem(new VanishSnapshotSystem(this));
 
-        getEventRegistry().register(PlayerSetupConnectEvent.class, event -> {
-            moderationService.handleJoinPunishmentChecks(event.getUuid(), event.getUsername());
-        });
+        ModerationListeners listeners = new ModerationListeners(this);
+        getEventRegistry().register(PlayerSetupConnectEvent.class, listeners::onPlayerSetupConnect);
 
-        for (World world : Universe
-                .get().getWorlds().values()) {
+        for (World world : Universe.get().getWorlds().values()) {
             world.getWorldMapManager().addMarkerProvider("playerIcons",
                     new VanishedPlayerIconMarkerProvider(this));
         }
 
-        getEventRegistry().registerGlobal(AddWorldEvent.class,
-                event -> {
-                    event.getWorld().getWorldMapManager().addMarkerProvider("playerIcons",
-                            new VanishedPlayerIconMarkerProvider(this));
-                });
+        getEventRegistry().registerGlobal(AddWorldEvent.class, listeners::onAddWorld);
 
-        getEventRegistry().register(PlayerDisconnectEvent.class,
-                event -> {
-                    vanishedSnapshots.remove(event.getPlayerRef().getUuid());
-                    vanishedPlayers.remove(event.getPlayerRef().getUuid());
-                });
+        getEventRegistry().register(PlayerDisconnectEvent.class, listeners::onPlayerDisconnect);
 
-        HytaleServer.get()
-                .getEventBus().<String, PlayerChatEvent>registerAsyncGlobal(
-                        PlayerChatEvent.class,
-                        future -> future.thenApply(event -> {
-                            try {
-                                UUID uuid = event.getSender().getUuid();
-                                logger.at(Level.INFO).log(
-                                        "Chat Event: " + event.getSender().getUsername() + ": " + event.getContent());
-
-                                if (chatLocked) {
-                                    if (!PermissionsModule.get()
-                                            .hasPermission(uuid, "moderation.chatlockdown.bypass")) {
-                                        event.setCancelled(true);
-                                        event.getSender().sendMessage(Message
-                                                .raw("Chat is currently locked by staff.").color(Color.RED));
-                                        return event;
-                                    }
-                                }
-
-                                if (isVanished(uuid)) {
-                                    event.setCancelled(true);
-                                    Message format = Message
-                                            .raw("[Vanished] " + event.getSender().getUsername() + ": "
-                                                    + event.getContent())
-                                            .color(Color.GRAY);
-                                    notifyStaff(format);
-                                    return event;
-                                }
-
-                                Optional<Punishment> mute = moderationService
-                                        .getActiveMute(uuid, event.getSender().getUsername());
-
-                                if (mute.isPresent()) {
-                                    Punishment p = mute.get();
-                                    event.setCancelled(true);
-                                    long now = System.currentTimeMillis();
-                                    long last = lastMuteFeedback.getOrDefault(uuid, 0L);
-                                    if (now - last > 2000) {
-                                        if (p.expiresAt() > 0) {
-                                            long remaining = p.expiresAt() - now;
-                                            String durationStr = TimeUtils
-                                                    .formatDuration(remaining);
-                                            event.getSender().sendMessage(Message
-                                                    .raw("You are muted for " + durationStr + ". Reason: "
-                                                            + p.reason())
-                                                    .color(Color.RED));
-                                        } else {
-                                            event.getSender().sendMessage(Message
-                                                    .raw("You are permanently muted. Reason: " + p.reason())
-                                                    .color(Color.RED));
-                                        }
-                                        lastMuteFeedback.put(uuid, now);
-                                    }
-                                    return event;
-                                }
-
-                                logger.at(Level.INFO).log("Chat: Allowed");
-                                return event;
-                            } catch (Exception e) {
-                                logger.at(Level.SEVERE).withCause(e).log("Error in chat listener!");
-                            }
-                            return event;
-                        }
-                        ));
+        HytaleServer.get().getEventBus().<String, PlayerChatEvent>registerAsyncGlobal(
+                PlayerChatEvent.class,
+                future -> future.thenApply(listeners::onPlayerChat)
+                        );
 
         long flushInterval = configManager.getDatabaseFlushIntervalSeconds();
         HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
