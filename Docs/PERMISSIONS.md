@@ -29,6 +29,8 @@ This document details all permission nodes available in **ModerationPlus**.
 | `moderation.flush` | Allow manually flushing the database | Admin |
 | `moderation.notify` | Receive staff notifications (bans, mutes, etc.) | Helper |
 | `moderation.report.receive` | Receive player reports | Helper |
+| `moderation.language` | Allow managing player language settings | Admin |
+| `moderation.admin` | Allow reloading plugin configuration/languages | Admin |
 
 ## Bypass Permissions
 

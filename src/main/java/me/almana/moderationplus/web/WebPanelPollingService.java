@@ -31,7 +31,7 @@ public class WebPanelPollingService {
     public WebPanelPollingService(ModerationPlus plugin) {
         this.plugin = plugin;
         this.ackService = new WebAcknowledgementService(plugin);
-        this.commandExecutor = new me.almana.moderationplus.web.WebCommandExecutor(plugin, ackService);
+        this.commandExecutor = new WebCommandExecutor(plugin, ackService);
         this.httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .connectTimeout(Duration.ofSeconds(10))
@@ -79,7 +79,7 @@ public class WebPanelPollingService {
                 }
 
                 // Construct simplified JSON body
-                String jsonBody = gson.toJson(java.util.Collections.singletonMap("claim_token", identity.claimToken()));
+                String jsonBody = gson.toJson(Collections.singletonMap("claim_token", identity.claimToken()));
 
                 HttpRequest claimRequest = HttpRequest.newBuilder()
                         .uri(URI.create(claimUrl))

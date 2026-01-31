@@ -87,11 +87,11 @@ Set the jail location to your current position.
 
 ## Administrative Commands
 
-### Vanish
+### StaffVanish
 Toggle invisibility mode. While vanished, you are hidden from other players, and your chat messages are redirected to staff notifications.
 - **Syntax:** `/staffvanish`
 - **Permission:** `moderation.vanish`
-- **Example:** `/vanish`
+- **Example:** `/staffvanish`
 
 ### Staff Chat
 Send a message to the staff-only chat channel.
@@ -131,8 +131,26 @@ Report a player to online staff. Available to all players (no permission require
 - **Example:** `/report Steve Killaura`
 - **Cooldown:** 30 seconds between reports
 
-### Flush
+### FlushDB
 Manually flush the database changes to disk.
-- **Syntax:** `/flush`
+- **Syntax:** `/flushdb`
 - **Permission:** `moderation.flush`
-- **Example:** `/flush`
+- **Example:** `/flushdb`
+
+### Language
+Manage language settings for yourself.
+- **Syntax:** `/language [list|set|reset] [locale]`
+- **Permission:** `moderation.language`
+- **Subcommands:**
+  - `list` - List available languages
+  - `set <locale>` - Set your preferred language
+  - `reset` - Reset your language to server default
+- **Example:** `/language set es_ES`
+
+### ModerationPlus
+Admin commands for the plugin.
+- **Syntax:** `/moderationplus <subcommand>`
+- **Permission:** `moderation.admin`
+- **Subcommands:**
+  - `lang reload` - Reload language files
+- **Example:** `/moderationplus lang reload`

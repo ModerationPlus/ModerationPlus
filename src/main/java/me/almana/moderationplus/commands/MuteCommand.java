@@ -18,6 +18,8 @@ import me.almana.moderationplus.storage.StorageManager.PlayerData;
 import java.util.UUID;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import me.almana.moderationplus.service.ExecutionContext;
+import java.util.Map;
 
 public class MuteCommand extends AbstractCommand {
 
@@ -58,16 +60,16 @@ public class MuteCommand extends AbstractCommand {
             String msg = plugin.getLanguageManager().translate(
                 "command.mute.player_not_found",
                 plugin.getLanguageManager().getDefaultLocale(),
-                java.util.Map.of("player", targetName)
+                Map.of("player", targetName)
             );
             ctx.sendMessage(Message.raw(msg).color(Color.RED));
             return CompletableFuture.completedFuture(null);
         }
 
-        me.almana.moderationplus.service.ExecutionContext context = new me.almana.moderationplus.service.ExecutionContext(
+        ExecutionContext context = new ExecutionContext(
                 (sender instanceof Player) ? sender.getUuid() : UUID.nameUUIDFromBytes("CONSOLE".getBytes()),
                 issuerName,
-                me.almana.moderationplus.service.ExecutionContext.ExecutionSource.COMMAND);
+                ExecutionContext.ExecutionSource.COMMAND);
 
         plugin.getModerationService().mute(targetUuid, targetName, reason, context).thenAccept(success -> {
             String locale = plugin.getLanguageManager().getDefaultLocale();
@@ -75,14 +77,14 @@ public class MuteCommand extends AbstractCommand {
                 String msg = plugin.getLanguageManager().translate(
                     "command.mute.success",
                     locale,
-                    java.util.Map.of("player", targetName)
+                    Map.of("player", targetName)
                 );
                 ctx.sendMessage(Message.raw(msg).color(Color.GREEN));
             } else {
                 String msg = plugin.getLanguageManager().translate(
                     "command.mute.failed",
                     locale,
-                    java.util.Map.of("player", targetName)
+                    Map.of("player", targetName)
                 );
                 ctx.sendMessage(Message.raw(msg).color(Color.RED));
             }

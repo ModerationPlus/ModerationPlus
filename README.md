@@ -14,6 +14,7 @@ Built with performance and reliability in mind, ModerationPlus utilizes a local 
 - **Chat Management:** Global chat lockdown and dedicated Staff Chat channel.
 - **Player History:** View comprehensive punishment history and staff notes for any player.
 - **Data Persistence:** Robust SQLite storage with automatic data flushing and backups.
+- **Localization:** Per-player language settings with support for custom translations.
 - **Configuration:** Simple JSON configuration for customization.
 
 ## Quick Start
