@@ -17,6 +17,8 @@ This document details all permission nodes available in **ModerationPlus**.
 | `moderation.history` | Allow viewing player punishment history | Helper |
 | `moderation.note` | Allow adding staff notes | Helper |
 | `moderation.notes` | Allow viewing staff notes | Helper |
+| `moderation.firstjoin` | Check player's first join time | Helper |
+| `moderation.lastseen` | Check player's last seen time | Helper |
 | `moderation.jail` | Allow jailing players | Mod |
 | `moderation.unjail` | Allow releasing players from jail | Mod |
 | `moderation.setjail` | Allow setting the jail location | Admin |

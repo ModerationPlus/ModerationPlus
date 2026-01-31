@@ -111,6 +111,18 @@ View a player's punishment history.
 - **Permission:** `moderation.history`
 - **Example:** `/history Steve`
 
+### FirstJoin
+Check when a player first joined the server.
+- **Syntax:** `/firstjoin <player>`
+- **Permission:** `moderation.firstjoin`
+- **Example:** `/firstjoin Steve`
+
+### LastSeen
+Check when a player was last seen on the server.
+- **Syntax:** `/lastseen <player>`
+- **Permission:** `moderation.lastseen`
+- **Example:** `/lastseen Steve`
+
 ### Note
 Add a staff note to a player.
 - **Syntax:** `/note <player> <message>`
